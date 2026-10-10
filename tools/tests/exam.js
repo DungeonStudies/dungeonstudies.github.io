@@ -257,6 +257,86 @@ const {chromium}=require('playwright');
     if(!isFinalFloor(100)) bad.push('a subject realm lost its final boss too');
     if(floorCap() !== '100') bad.push('a subject realm stopped counting to a hundred');
 
+    /* ---------- 9. the bugs that were found after the fact ---------- */
+    /* a one-word criterion used to be unscoreable: no word over four letters,
+       so no keywords, so never met however exactly it was answered */
+    const shortQ = {marks:2, criteria:[{text:'ATP', marks:1},{text:'the cell\u2019s energy currency', marks:1}]};
+    const shortA = 'ATP. It is the energy currency of the cell and it drives active transport across every membrane in the body, '
+                 + 'and without it the sodium potassium pump stops and the cell can no longer hold its resting potential.';
+    const short = offlineMark(shortQ, shortA);
+    /* the bug was that a criterion with no word over four letters produced no
+       keywords at all, so it could never be met however exactly it was said */
+    short.criteria.forEach(c=>{ if(!c.met) bad.push('criterion "'+c.text+'" was not credited though the answer says it'); });
+    if(short.awarded < 2) bad.push('a fully covered 2-marker scored '+short.awarded+'/2');
+    /* and length is still a real ceiling: the same points, said too briefly */
+    const brief = offlineMark(shortQ, 'ATP, the energy currency of the cell.');
+    if(brief.awarded >= short.awarded) bad.push('a one-line answer scored the same as a full one');
+    log.push(['short criteria', 'full '+short.awarded+'/2, brief '+brief.awarded+'/2, met '+short.criteria.map(c=>c.met).join(',')]);
+
+    /* a term with no definition is not a question */
+    const blanky = normalizeSubject({id:'bl',name:'Bl',flashcards:[],notes:'',
+      terms:[makeTerm('aa',''),makeTerm('bb',''),makeTerm('cc',''),makeTerm('dd','')]});
+    let blanks = 0;
+    for(let i=0;i<20;i++){
+      let q; try{ q = buildTermQuestion(blanky,'medium'); }
+      catch(e){ bad.push('a glossary of blanks threw: '+e.message); break; }
+      if(/described\? \u2014 *$/.test(q.prompt||'')) blanks++;
+    }
+    if(blanks) bad.push(blanks+' questions asked you to name a term with no description');
+
+    /* a subject with notes but nothing to read a definition out of must not be
+       examined on the demo deck's content under its own name */
+    const notesOnly = normalizeSubject({id:'no2',name:'NotesOnly',flashcards:[],notes:'Some prose about things.'});
+    const nq = offlineExamQuestion(notesOnly, 8);
+    ['Romeo','Pacific','H2O','prime'].forEach(w=>{
+      if(nq.prompt.indexOf(w) >= 0) bad.push('a notes-only subject was examined on the demo deck: '+nq.prompt);
+    });
+    log.push(['notes-only question', '"'+nq.prompt.slice(0,52)+'"']);
+
+    /* a fresh install has the fields the rest of the game reads by name */
+    const fresh = defaultSubjects()[0];
+    ['terms','exams','syllabus'].forEach(k=>{ if(!(k in fresh)) bad.push('defaultSubjects() has no '+k); });
+
+    /* one click is one action */
+    await setExamMode(false);
+    setRealm(App.subjects[0].id); startRun();
+    App.run.floor = 11; App.run.monster = generateMonster(11, 0);
+    App.run.monster.atk = 4; App.run.monster.cunning = 0; App.run.monster.kit = [];
+    App.run.hp = combatStats().maxHp;
+    App.currentQuestion = buildQuestion('medium');
+    App.currentPhase = 'question';
+    const n0 = App.character.totalAnswered;
+    const wrongOpt = (App.currentQuestion.options||[]).find(o=>o!==App.currentQuestion.correct) || 'zzzz';
+    await Promise.all([submitAnswer(wrongOpt), submitAnswer(wrongOpt)]);
+    await wait(400);
+    if(App.character.totalAnswered - n0 !== 1)
+      bad.push('a double tap answered the question '+(App.character.totalAnswered-n0)+' times');
+    App.run.floor = 11; App.run.monster = generateMonster(11, 0);
+    App.run.monster.hp = App.run.monster.maxHp = 500000;
+    App.run.energy = 9; App.currentPhase = 'skillmenu';
+    const mhp = App.run.monster.hp;
+    await Promise.all([useSkillById('warrior_slash'), useSkillById('warrior_slash')]);
+    const hits = App.run.monster.hp < mhp ? 1 : 0;
+    log.push(['double tap', 'answered once, '+(mhp-App.run.monster.hp)+' damage from a doubled click']);
+    if(!hits) bad.push('the doubled skill click dealt nothing at all');
+
+    /* ---------- 10. the tour and the help page know about all of it ---------- */
+    const tourText = TUTORIAL.map(s2=>s2.title+' '+s2.text).join(' ').toLowerCase();
+    [['exam mode','exam mode'],['the mark as damage','mark'],['block','block'],
+     ['the glossary','glossary'],['the syllabus','syllabus'],['infinity being endless','no bottom']]
+      .forEach(([what,word])=>{ if(tourText.indexOf(word) < 0) bad.push('the tour never mentions '+what); });
+    App.topTab='study'; App.studyView='settings'; render(); await wait(200);
+    if(!document.querySelector('#exam-on')) bad.push('Settings has no exam mode switch');
+    const helpTitles = [...document.querySelectorAll('.help-step h3')].map(h=>h.textContent);
+    if(helpTitles.length !== TUTORIAL.length + 1)
+      bad.push('Help shows '+helpTitles.length+' sections for '+TUTORIAL.length+' tour steps plus the numbers');
+    if(document.querySelectorAll('.help-tbl').length !== 2) bad.push('the Help reference lost a table');
+    const nums = (document.querySelector('.help-numbers')||{}).textContent || '';
+    [String(MARK_TIERS[0].marks), String(MARK_TIERS[MARK_TIERS.length-1].marks),
+     EXAM_CURVE[EXAM_CURVE.length-1].band, String(Math.round(BLOCK_CUT*100))]
+      .forEach(v=>{ if(nums.indexOf(v) < 0) bad.push('the Help reference does not print '+v); });
+    log.push(['tour / help', TUTORIAL.length+' steps, '+helpTitles.length+' help sections']);
+
     await setExamMode(false);
     return {bad, log};
   });

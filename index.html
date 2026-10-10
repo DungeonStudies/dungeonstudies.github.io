@@ -750,6 +750,19 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .qwhy{display:block;margin-top:6px;font-weight:400;font-size:.92em;line-height:1.45;
   color:rgba(255,255,255,.74);border-top:1px solid rgba(255,255,255,.12);padding-top:6px;}
 .artifact-inline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.help-numbers h4{font-family:var(--ui);font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+  margin:18px 0 8px;color:rgba(255,217,120,.85);}
+.help-numbers p{margin:0 0 6px;line-height:1.6;}
+.help-tbl{width:100%;border-collapse:collapse;margin:4px 0 8px;font-size:13px;}
+.help-tbl th{text-align:left;font-family:var(--ui);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(255,255,255,.45);padding:4px 10px 4px 0;border-bottom:1px solid var(--hairline);font-weight:700;}
+.help-tbl td{padding:5px 10px 5px 0;border-bottom:1px solid rgba(255,255,255,.06);
+  color:rgba(255,255,255,.76);vertical-align:top;}
+.help-tbl tr:last-child td{border-bottom:0;}
+#panel.light .help-tbl td{color:#5b5470;}
+#panel.light .help-tbl th{color:#6b6280;border-bottom-color:rgba(90,70,140,.25);}
+#panel.light .help-tbl td{border-bottom-color:rgba(90,70,140,.12);}
+#panel.light .help-numbers h4{color:#8a6a1f;}
 
 /* ===================== THE PAPER =====================
    An exam question has to look like one. Not a row of buttons with a timer on
@@ -4129,12 +4142,15 @@ function scrubCountMaps(character){
    ========================================================================== */
 const INFINITY_ID = '__infinity__';
 function defaultSubjects(){
-  return [{
+  /* Normalised on the way out. Only SAVED subjects used to be, so a fresh
+     install started with a subject that had no terms, no syllabus and no exam
+     bank - every one of which is read by name somewhere. */
+  return [normalizeSubject({
     id: 'math', name: 'Mathematics', icon: '✖',
     builtin: 'multiplication',
     notes: 'Multiplication tables.\n\nThe dungeon drills you on products, missing factors and chained products, scaled to the difficulty you pick each round. Upload your own material here to mix real flashcards into this subject.',
     flashcards: [],
-  }];
+  })];
 }
 const SUBJECT_ICONS = [
   [/\bmath|algebra|geometr|calculus|arithmetic|multiplic/i, '✖'],
@@ -6892,11 +6908,24 @@ function offlineMark(q, answer){
   if(words < 5) return {awarded:0, max:q.marks, criteria:[], words,
     feedback:'Nothing to mark.', improve:'Write an answer.', offline:true};
 
+  const norm = normText(text);
+  const wordsOf = (raw, min) => String(raw||'').toLowerCase()
+    .replace(/[^a-z0-9\s]/g,' ').split(/\s+/)
+    .filter(w=>w.length > min && !OFFLINE_STOP.has(w));
   const crits = (q.criteria||[]).map(c=>{
-    const keys = String(c.text||'').toLowerCase()
-      .replace(/[^a-z0-9\s]/g,' ').split(/\s+/)
-      .filter(w=>w.length>4 && !OFFLINE_STOP.has(w));
-    const hit = keys.length ? keys.filter(k=>lower.indexOf(k) >= 0).length / keys.length : 0;
+    const raw = String(c.text||'');
+    /* The whole criterion, said in the answer, is a hit on its own. */
+    const whole = normText(raw);
+    let hit = (whole.length >= 3 && norm.indexOf(whole) >= 0) ? 1 : 0;
+    if(hit < 1){
+      /* Long words first, because they carry the meaning. But a criterion of
+         nothing but short ones - "ATP", "the sun", a one-word answer off a
+         flashcard - produced no keywords at all and so could never be met,
+         however exactly it had been answered. */
+      let keys = wordsOf(raw, 4);
+      if(!keys.length) keys = wordsOf(raw, 1);
+      hit = keys.length ? keys.filter(k=>lower.indexOf(k) >= 0).length / keys.length : 0;
+    }
     return {text:c.text, marks:c.marks || 1, met: hit >= 0.4, cover: hit};
   });
   const critMax = crits.reduce((n,c)=>n + c.marks, 0) || q.marks;
@@ -7068,22 +7097,57 @@ const EXAM_SHAPES = {
   20: (a,b,t)=> 'Discuss how ' + a.term + (b ? ' and ' + b.term : '') + ' shape' + (b ? ' ' : 's ') + (t || 'this area of the course') + '.',
 };
 function examTermPool(subj){
-  const pool = (subj && subj.terms && subj.terms.length) ? subj.terms.slice() : [];
+  const pool = usableTerms(subj);
   if(pool.length) return pool;
   /* No glossary yet: a flashcard with a short answer is a term and a
      definition wearing different clothes. */
-  const cards = (subj && subj.flashcards && subj.flashcards.length) ? subj.flashcards : STARTER_DECK;
-  return cards.filter(c=>String(c.back).trim().split(/\s+/).length <= 4)
+  const cards = (subj && subj.flashcards && subj.flashcards.length) ? subj.flashcards : [];
+  const fromCards = cards.filter(c=>String(c.back).trim().split(/\s+/).length <= 4)
     .slice(0, 40).map(c=>makeTerm(c.back, c.front, c.topic || ''));
+  if(fromCards.length) return fromCards;
+  /* Still nothing, but there are notes: read the definitions straight out of
+     them. This is what stopped a subject that has only notes being examined
+     on the demo deck - "Analyse the relationship between 63 and H2O" under
+     the player's own subject name, which is worse than no question at all. */
+  const fromNotes = offlineTerms((subj && subj.notes) || '');
+  if(fromNotes.length) return fromNotes;
+  /* A subject that HAS material but nothing a definition could be read out of
+     gets an empty pool and the general question below, not somebody else's
+     vocabulary. Borrowing the demo deck here produced "Analyse the
+     relationship between Pacific Ocean and 0" under the player's own subject
+     name, which is worse than asking nothing clever at all. */
+  if(subj && (((subj.notes||'').trim()) || (subj.flashcards||[]).length)) return [];
+  return (STARTER_DECK || []).filter(c=>String(c.back).trim().split(/\s+/).length <= 4)
+    .slice(0, 40).map(c=>makeTerm(c.back, c.front, c.topic || ''));
+}
+/* The best name this subject has for what it is about, for the general
+   question to be about something rather than nothing. */
+function notesTopic(subj){
+  const notes = String((subj && subj.notes) || '');
+  const head = notes.match(/^\s*#{1,4}\s+(.{3,60})$/m) || notes.match(/^\s*\*\*(.{3,60})\*\*\s*$/m);
+  if(head) return head[1].trim().replace(/[:.]$/,'');
+  const topics = {};
+  ((subj && subj.flashcards) || []).forEach(c=>{ if(c.topic) topics[c.topic] = (topics[c.topic]||0)+1; });
+  const best = Object.keys(topics).sort((a,b)=>topics[b]-topics[a])[0];
+  return best || '';
 }
 function offlineExamQuestion(subj, marks){
   const pool = shuffle(examTermPool(subj));
   const a = pool[0], b = pool[1];
   const topic = (a && a.topic) || '';
   if(!a){
-    return {id:uid(), marks, prompt:'Outline the main idea of this topic in your own words.',
-            topic:'', criteria:[{text:'States the main idea', marks:Math.max(1, marks-1)},
-                                {text:'Supports it with one detail', marks:1}], used:0, offline:true};
+    /* Nothing to name, so it asks about the material in general. It still
+       names what it is about where the notes say so, because "this topic" is
+       not a question anybody can answer well. */
+    const about = notesTopic(subj);
+    const tier0 = markTier(marks);
+    return {id:uid(), marks, topic:about,
+            prompt: tier0.verb + ' the key ideas' + (about ? ' in ' + about : ' in this topic')
+                    + ', using evidence from your notes.',
+            criteria:[{text:'States the key ideas accurately', marks:Math.max(1, marks-2)},
+                      {text:'Supports them with specific evidence from the material', marks:1},
+                      {text:'Uses the subject\'s own terminology', marks:1}],
+            used:0, offline:true};
   }
   const shape = EXAM_SHAPES[marks] || EXAM_SHAPES[6];
   const crits = [];
@@ -7236,9 +7300,22 @@ function trimDef(d, n){
   const sp = cut.lastIndexOf(' ');
   return (sp > n*0.6 ? cut.slice(0, sp) : cut) + '…';
 }
+/* A term with no definition cannot be described, and one with no name cannot
+   be the answer. Either way it is not a question, so it is never drawn. */
+function usableTerms(subj){
+  return ((subj && subj.terms) || []).filter(t=>t && String(t.term||'').trim() && String(t.def||'').trim());
+}
 function buildTermQuestion(subj, diffId){
   const d = DIFFS[diffId] || DIFFS.medium;
-  const terms = (subj.terms||[]).slice();
+  const terms = usableTerms(subj);
+  /* Called with nothing to ask - a glossary of blanks, or a deck that lost
+     its definitions in an import - it used to throw out of weightedPick and
+     take the whole battle screen with it. A question that cannot be built is
+     a card question instead. */
+  if(!terms.length){
+    const pool = (subj && subj.flashcards && subj.flashcards.length) ? subj.flashcards : STARTER_DECK;
+    return buildCardQuestion(pool, diffId, subj);
+  }
   /* the ones you have missed come back first, same as the flashcards */
   const t = weightedPick(terms.map(x=>({v:x, w:1 + (x.missed||0)*3 + ((x.seen||0)===0 ? 2 : 0)})));
   const others = terms.filter(x=>x.id!==t.id);
@@ -7340,7 +7417,7 @@ function buildQuestion(diffId, srcs, opts){
   if(allowWritten && examModeOn() && chance(EXAM_SHORT_CHANCE)){
     return buildShortQuestion(diffId, subj, floor, pool);
   }
-  if(subj && (subj.terms||[]).length >= 4 && chance(TERM_Q_CHANCE)){
+  if(subj && usableTerms(subj).length >= 4 && chance(TERM_Q_CHANCE)){
     return buildTermQuestion(subj, diffId);
   }
   return buildCardQuestion(pool, diffId, subj);
@@ -7829,7 +7906,61 @@ function renderHelpSection(){
     box.appendChild(el(`<div class="help-step"><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.text)}</p></div>`));
   });
   wrap.querySelector('#help-tour').addEventListener('click', ()=>startTutorial(true));
+  box.appendChild(renderHelpNumbers());
   return wrap;
+}
+
+/* ---- the numbers, read off the constants themselves ---------------------
+   Orin talks; this is for when you want the actual figures. Every one of
+   them is generated from the table the game runs on, so a balance change
+   rewrites this page rather than making it a lie. */
+function renderHelpNumbers(){
+  const capRow = id => {
+    const t = tiersFor(id);
+    return DIFFS[id].icon + ' <b>' + DIFFS[id].label + '</b> — '
+      + t.map(x=>x.marks).join(', ') + ' mark'
+      + (t.length>1?'s':'')
+      + (id === 'hard' ? ' <i>(the only one that reaches 8 and over)</i>' : '');
+  };
+  const tierRows = MARK_TIERS.map(t=>
+    `<tr><td><b>${t.marks}</b></td><td>${escapeHtml(t.verb)}</td>`
+    + `<td>${t.words[0]}–${t.words[1]} words</td><td>~${t.mins} min</td></tr>`).join('');
+  const bandRows = EXAM_CURVE.map((b,i)=>{
+    const next = EXAM_CURVE[i+1];
+    const range = Math.round(b.at*100) + (next ? '–' + (Math.round(next.at*100)-1) : '–100') + '%';
+    return `<tr><td>${escapeHtml(b.band)}</td><td>${range}</td>`
+         + `<td>×${b.mult}</td><td>${escapeHtml(b.note)}</td></tr>`;
+  }).join('');
+  const upside = MARK_VALUES.map(v=>v + ': ×' + examMultiplier(v, v).mult).join(' · ');
+
+  return el(`<div class="help-step help-numbers">
+    <h3>The numbers, if you want them</h3>
+
+    <h4>What each difficulty asks for</h4>
+    <p>${DIFF_IDS.map(capRow).join('<br>')}</p>
+    <p class="muted">Damage, damage taken and XP move with it as well: ${
+      DIFF_IDS.map(id=>DIFFS[id].label + ' ×' + DIFFS[id].dmgMult).join(' · ')}.</p>
+
+    <h4>The markers</h4>
+    <table class="help-tbl"><thead><tr><th>Marks</th><th>Verb</th><th>Length</th><th>Time</th></tr></thead>
+      <tbody>${tierRows}</tbody></table>
+    <p class="muted">A boss floor's marker is set by how deep you are, inside whatever your difficulty allows — floor ${
+      10} opens at ${tierForFloor(10).marks} marks and floor ${MAX_FLOOR} ends at ${tierForFloor(MAX_FLOOR).marks}.</p>
+
+    <h4>What a mark is worth</h4>
+    <table class="help-tbl"><thead><tr><th>Band</th><th>You scored</th><th>Damage</th><th></th></tr></thead>
+      <tbody>${bandRows}</tbody></table>
+    <p class="muted">Those are the figures for a 15 marker. Shorter questions keep the whole of the downside and only part of the upside, because thirty seconds of typing should not pay what half an hour pays — full marks is worth ${upside}.</p>
+
+    <h4>Guarding</h4>
+    <p>Block costs no energy and every class has it. The next hit you take lands for <b>${Math.round(BLOCK_CUT*100)}%</b>, and what it costs you is the strike you had just earned. It never replaces a stronger guard already up.</p>
+
+    <h4>Hints and revives</h4>
+    <p>${AD_HINTS_PER_RUN} hints and ${AD_REVIVES_PER_RUN} revive a run, each offered rather than taken, and both work without an ad if none is available. On an ordinary question a hint rules out a wrong answer and shows your own explanation with the answer struck out; on a marker it shows you a line off the marking guideline instead.</p>
+
+    <h4>Infinity</h4>
+    <p>No final boss and no bottom. Floor ${MAX_FLOOR} is the end of the first descent; after it the regions cycle, the bosses return with a new title, and the numbers keep climbing. Everywhere else still ends at ${MAX_FLOOR}.</p>
+  </div>`);
 }
 function renderAdSettings(){
   const cfg = AD_CFG_CACHE || AD_CFG_DEFAULTS;
@@ -9751,10 +9882,27 @@ function useHintArtifact(){
   saveCharacter();
   render();
 }
+/* ---- one click is one action -------------------------------------------
+   Every one of these is async and none of them replaced the buttons until it
+   was most of the way through, so a double tap - which on a phone is most
+   taps - answered the question twice, wound the boss twice and took two
+   swings for one turn. On a free basic attack it was simply two attacks for
+   the price of one. The flag is cleared in a finally, so a throw anywhere in
+   a turn cannot leave the game unclickable. */
+let ACTING = false;
+async function actOnce(fn){
+  if(ACTING) return;
+  ACTING = true;
+  try{ return await fn(); }
+  finally{ ACTING = false; }
+}
 async function submitAnswer(rawValue){
   const q = App.currentQuestion;
   if(!q) return;
   if(q.mode==='written') return submitWritten(rawValue);
+  return actOnce(()=>submitAnswerNow(q, rawValue));
+}
+async function submitAnswerNow(q, rawValue){
   const correct = q.mode==='mcq' ? (rawValue===q.correct) : fuzzyMatch(rawValue, q.correct);
   App.lastAnswerCorrect = correct;
   Sfx.play(correct ? 'right' : 'wrong');
@@ -9813,7 +9961,7 @@ async function resolveAnswer(q, correct, payoff){
    strike. A zero is a miss and the thing in front of you takes its turn. */
 async function submitWritten(text){
   const q = App.currentQuestion;
-  if(!q || q.mode!=='written' || q.marking) return;
+  if(!q || q.mode!=='written' || q.marking || ACTING) return;
   const answer = String(text==null ? '' : text);
   q.answer = answer;
   q.marking = true;
@@ -9839,7 +9987,7 @@ async function submitWritten(text){
 async function continueFromMarked(){
   const q = App.currentQuestion, res = App.examResult;
   if(!q || !res) { App.currentPhase = 'difficulty'; render(); return; }
-  await resolveAnswer(q, res.awarded > 0, 1 + (res.ratio || 0));
+  return actOnce(()=>resolveAnswer(q, res.awarded > 0, 1 + (res.ratio || 0)));
 }
 /* A buff skill still has to do everything a skill does to you - it just never
    touches the enemy. */
@@ -10864,6 +11012,9 @@ async function resolveMonsterHit(){
   render();
 }
 async function useSkillById(skillId){
+  return actOnce(()=>useSkillNow(skillId));
+}
+async function useSkillNow(skillId){
   const skill = SKILLS[skillId];
   if(!skill) return;
   if(skillCooldown(skillId) > 0) return;
@@ -13626,10 +13777,13 @@ const TUTORIAL = [
    text:"I am Orin. I was one of four who put a tower on top of a man who deserved it, and I am the only one of the four still walking about. You are going down there. Before you do, let me show you where everything is — it takes a minute and it saves you an hour."},
 
   {tab:'play', view:'hub', at:'[data-tut="realm"]', side:'bottom', title:'This is what you are fighting with',
-   text:"Every question a monster asks you comes out of this. Whatever you loaded in — your notes, a deck someone sent you, or the multiplication tables if you have loaded nothing — that is the subject, and this is where you change it. Get a question right, you swing. Get it wrong, it swings."},
+   text:"Every question a monster asks you comes out of this. Whatever you loaded in — your notes, a deck someone sent you, or the multiplication tables if you have loaded nothing — that is the subject, and this is where you change it. Get a question right, you swing. Get it wrong, it swings. One of them is called Infinity: it draws on every subject at once, and it has no bottom. The hundredth floor is not the end of it, only the end of the first descent — after that the tower starts again with the numbers still climbing and the things you already killed coming back up under new names."},
 
   {tab:'play', view:'hub', at:'[data-tut="enter"]', side:'bottom', title:'A hundred floors, and they get worse',
-   text:"You pick a difficulty each turn before the question: an easier one does less damage, a harder one does more and pays more. Every tenth floor is a boss. Die and you keep your levels, your gear and everything you learned — you only lose the descent."},
+   text:"You pick a difficulty each turn before the question: an easier one does less damage, a harder one does more and pays more — and in exam mode it also decides how long a question you get, because only Hard will ever hand you an eight marker or bigger. Every tenth floor is a boss. Die and you keep your levels, your gear and everything you learned — you only lose the descent."},
+
+  {tab:'play', view:'hub', at:'[data-tut="enter"]', side:'bottom', title:'And you do not have to swing',
+   text:"Get the question right and you choose a move. One of them is Block, and every one of you has it: you give up the strike you just earned and the next thing that hits you hits for half. It costs nothing but the turn. When a boss is winding up something with your name on it, that is the turn to spend."},
 
   {tab:'play', view:'hub', at:'[data-tut="inventory"]', side:'bottom', title:'Your gear, and three artifacts',
    text:"Weapons, armour, potions and the stash live here. So do the artifacts, which are the rare ones: a lens that buys you hints, an ember that brings you back once, a charm that bends the odds. Equip them before you go down, not after."},
@@ -13646,8 +13800,17 @@ const TUTORIAL = [
   {tab:'study', view:'hub', at:'[data-tut="studyupload"]', side:'bottom', title:'Put your notes in',
    text:"Paste the text, drop a PDF, or import a deck file someone sent you. It comes back as flashcards with the topic on each one, and you can edit every one of them by hand afterwards. Your misses are counted per topic, so the game can tell you WHICH PART you keep getting wrong."},
 
+  {tab:'study', view:'hub', at:'[data-tut="studyupload"]', side:'bottom', title:'It also keeps the words',
+   text:"Every subject has words in it that are not ordinary English — arousal, adrenaline, hegemony, elasticity — and knowing the subject is mostly knowing those. They get pulled out as a glossary while your notes are read, and down there you get asked them the way you are actually asked them: here is the description, name it. On the same page you can load your SYLLABUS, which is a different thing from your notes. Your notes are what you wrote down; the syllabus is what the course says you have to know. Questions get written against both."},
+
+  {tab:'study', view:'hub', at:'[data-tut="studysettings"]', side:'bottom', title:'Now the part that will actually hurt',
+   text:"In here is a switch called EXAM MODE, and it is off until you turn it on. Off, you get asked what you have always been asked — pick the right one, type the short answer, name the term. On, it starts making you WRITE. Short answers mixed in on the way down, and every boss floor becomes a real extended response: a marker in the two, four, six, eight, twelve, fifteen, twenty family, written from your own notes and your own syllabus, with no options to pick from at all."},
+
+  {tab:'study', view:'hub', at:'[data-tut="studysettings"]', side:'bottom', title:'And the mark is the damage',
+   text:"You write it, it gets marked against the guideline it was built with, and the mark you get IS your multiplier. Full marks is the hardest blow in the game. Half marks is an ordinary hit. A blank page does nothing at all and the thing in front of you takes its turn. There is no way to fake it — a multiple-choice question cannot tell knowing something from recognising it, and that difference is most of what an exam is for. If you have an AI key set it does the marking; if you have not, an offline marker reads it against the guideline and tells you plainly that that is what it did."},
+
   {tab:'study', view:'hub', at:'[data-tut="studysettings"]', side:'bottom', title:'Volume, ads, and this again',
-   text:"Settings are in here: the volume, the AI, and the ads. And this whole tour is written out on that page under Help — so if you want to read it again at your own pace instead of listening to me, that is where it is."},
+   text:"The rest of Settings is in there too: the volume, the AI, and the ads. And this whole tour is written out on that page under Help — so if you want to read it again at your own pace instead of listening to me, that is where it is, with the numbers written out underneath it."},
 
   {tab:'play', view:'hub', title:'Go on, then',
    text:"That is everything. Pick your subject, pick a party, and go down. If you get stuck, I am in Settings under Help and I do not mind repeating myself."},
