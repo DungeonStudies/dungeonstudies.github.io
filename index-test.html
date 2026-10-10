@@ -11597,7 +11597,7 @@ function renderRealmSelect(){
       <span class="rc-name">${escapeHtml(sj.name)}</span>
       <span class="rc-src">${escapeHtml(realmSourceSummary(sj.id))}</span>
       <span class="rc-stats">${sum.started
-        ? `Lv ${sum.level} ${CLASSES[sum.classId].name} · Floor ${sum.highestFloor}/${floorCapFor(s.id)} · ${sum.gems} 💎 · ${sum.gear} item${sum.gear===1?'':'s'}`
+        ? `Lv ${sum.level} ${CLASSES[sum.classId].name} · Floor ${sum.highestFloor}/${floorCapFor(sj.id)} · ${sum.gems} 💎 · ${sum.gear} item${sum.gear===1?'':'s'}`
         : 'Untouched — you begin with nothing'}</span>
       <span class="rc-cta">${sum.runActive ? 'Continue — floor '+sum.runFloor : 'Enter realm'}</span>
     </button>`);
