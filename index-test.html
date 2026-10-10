@@ -750,6 +750,97 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .qwhy{display:block;margin-top:6px;font-weight:400;font-size:.92em;line-height:1.45;
   color:rgba(255,255,255,.74);border-top:1px solid rgba(255,255,255,.12);padding-top:6px;}
 .artifact-inline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+
+/* ===================== LOCAL VERSUS =====================
+   Two sides facing each other with a VS between them, which is the only
+   layout this has ever needed. It has to work on a phone held by six people
+   taking turns, so the sides stack rather than squeeze. */
+:root{ --pvp-red:#f0647a; --pvp-blue:#6aa8ff; }
+.t0{color:var(--pvp-red);} .t1{color:var(--pvp-blue);}
+.pvp-intro{font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.72);margin:8px 0 0;}
+.pvp-intro.muted{color:rgba(255,255,255,.5);}
+.pvp-roster{display:grid;gap:10px;}
+.pvp-row{display:grid;grid-template-columns:40px 1fr 1fr auto auto;gap:9px;align-items:center;
+  padding:9px 11px;border-radius:12px;border:1px solid var(--hairline);
+  background:rgba(255,255,255,.03);border-left-width:3px;}
+.pvp-row.t0{border-left-color:var(--pvp-red);} .pvp-row.t1{border-left-color:var(--pvp-blue);}
+.pr-art{width:40px;height:40px;display:block;}
+.pr-art svg,.pf-art svg{width:100%;height:100%;display:block;image-rendering:pixelated;}
+.pvp-row input,.pvp-row select{width:100%;padding:7px 9px;border-radius:9px;font-family:var(--ui);font-size:13px;
+  background:rgba(10,8,18,.6);border:1px solid var(--hairline);color:#f2eeff;}
+.pr-team,.pr-drop{padding:7px 11px;border-radius:9px;font-family:var(--ui);font-weight:800;font-size:12px;
+  background:rgba(255,255,255,.07);border:1px solid var(--hairline);color:#f2eeff;cursor:pointer;}
+.pvp-row.t0 .pr-team{color:var(--pvp-red);} .pvp-row.t1 .pr-team{color:var(--pvp-blue);}
+.pr-drop[disabled]{opacity:.25;cursor:default;}
+.pvp-count{font-family:var(--ui);font-weight:800;text-align:center;margin:14px 0 0;letter-spacing:.06em;
+  color:rgba(255,255,255,.7);}
+.pvp-opts{display:flex;gap:14px;flex-wrap:wrap;}
+.pvp-field{flex:1 1 220px;font-family:var(--ui);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:rgba(255,255,255,.5);display:block;}
+.pvp-field select{display:block;width:100%;margin-top:6px;padding:9px 10px;border-radius:10px;
+  background:rgba(10,8,18,.6);border:1px solid var(--hairline);color:#f2eeff;font-family:var(--ui);
+  font-size:14px;text-transform:none;letter-spacing:0;}
+.px-btn.big{font-size:16px;padding:14px 26px;}
+
+.pvp-arena{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:start;margin-bottom:14px;}
+.pvp-side{min-width:0;}
+.ps-label{font-family:var(--ui);font-weight:800;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  margin-bottom:7px;opacity:.8;}
+.pvp-side.s0 .ps-label{color:var(--pvp-red);} .pvp-side.s1 .ps-label{color:var(--pvp-blue);text-align:right;}
+.ps-row{display:grid;gap:9px;}
+.pvp-vs{font-family:var(--ui);font-weight:800;font-size:15px;letter-spacing:.1em;color:rgba(255,255,255,.3);
+  align-self:center;padding:0 2px;}
+.pvp-fighter{position:relative;display:grid;grid-template-columns:46px 1fr;grid-template-rows:auto auto auto;
+  gap:2px 10px;padding:9px 11px;border-radius:12px;border:1px solid var(--hairline);
+  background:linear-gradient(158deg,rgba(38,34,56,.72),rgba(18,16,30,.8));border-left-width:3px;
+  transition:border-color .18s, transform .18s, box-shadow .18s;}
+.pvp-fighter.t0{border-left-color:var(--pvp-red);} .pvp-fighter.t1{border-left-color:var(--pvp-blue);}
+.pvp-fighter.active{box-shadow:0 0 0 2px rgba(255,217,120,.5);}
+.pvp-fighter.down{opacity:.4;filter:grayscale(1);}
+.pvp-fighter.pickable{cursor:pointer;animation:pvppick 1.5s infinite;}
+.pvp-fighter.pickable:hover{transform:translateY(-2px);box-shadow:0 0 0 3px rgba(255,217,120,.95);animation:none;}
+/* The whole point of this mode is a phone handed round a table, and a phone
+   has no hover - so a target has to look like a target standing still. */
+@keyframes pvppick{0%,100%{box-shadow:0 0 0 2px rgba(255,217,120,.4);}50%{box-shadow:0 0 0 3px rgba(255,217,120,.85);}}
+.pvp-fighter.pickable::after{content:'\25B6 STRIKE';position:absolute;right:11px;bottom:8px;
+  font-family:var(--ui);font-weight:800;font-size:10px;letter-spacing:.1em;color:#ffd978;}
+.pvp-fighter.struck{animation:pvpstruck .5s;}
+@keyframes pvpstruck{0%,100%{transform:translateX(0);}20%{transform:translateX(-5px);}60%{transform:translateX(4px);}}
+.pf-art{grid-row:1 / span 3;width:46px;height:46px;align-self:center;}
+.pf-art.mirror{transform:scaleX(-1);}
+.pf-name{font-family:var(--ui);font-weight:800;font-size:13px;color:#fff;}
+.pf-out{font-size:10px;letter-spacing:.1em;color:var(--pvp-red);margin-left:5px;}
+.pf-hp{position:relative;display:block;height:13px;border-radius:7px;overflow:hidden;
+  background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.1);}
+.pf-hpfill{position:absolute;inset:0;background:linear-gradient(90deg,#3fcf8e,#8ff0bb);transition:width .35s;}
+.pf-hpnum{position:relative;display:block;text-align:center;font-family:var(--ui);font-size:9px;font-weight:800;
+  line-height:13px;color:#06120c;}
+.pf-meta{font-family:var(--ui);font-size:11px;color:rgba(255,255,255,.52);}
+.pf-float{position:absolute;right:10px;top:4px;font-family:var(--ui);font-weight:800;font-size:17px;
+  color:#ffa3b5;animation:pvpfloat .9s forwards;pointer-events:none;}
+.pf-float.crit{color:#ffd978;font-size:21px;}
+@keyframes pvpfloat{0%{opacity:0;transform:translateY(6px);}25%{opacity:1;}100%{opacity:0;transform:translateY(-20px);}}
+
+.pvp-pass{text-align:center;padding:30px 18px;}
+.pp-who{font-family:var(--ui);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(255,255,255,.45);}
+.pp-name{font-family:var(--ui);font-weight:800;font-size:clamp(30px,6vw,46px);line-height:1.1;margin:6px 0 2px;}
+.pp-sub{font-family:var(--ui);font-size:13px;color:rgba(255,255,255,.55);margin-bottom:18px;}
+.pp-note{font-size:13px;color:#ffa3b5;margin-bottom:16px;}
+.pvp-win{text-align:center;padding:26px 18px;}
+.pw-title{font-family:var(--ui);font-weight:800;font-size:clamp(26px,5vw,40px);}
+.pw-sub{font-family:var(--ui);font-size:13px;color:rgba(255,255,255,.55);margin-top:4px;}
+.pvp-table td b.t0{color:var(--pvp-red);} .pvp-table td b.t1{color:var(--pvp-blue);}
+.pvp-log{margin-top:12px;padding:11px 14px;border-radius:12px;background:rgba(0,0,0,.28);
+  border:1px solid var(--hairline);font-size:12.5px;line-height:1.7;color:rgba(255,255,255,.6);}
+.pvp-log div:first-child{color:rgba(255,255,255,.88);}
+@media (max-width:760px){
+  .pvp-arena{grid-template-columns:1fr;}
+  .pvp-vs{text-align:center;padding:2px 0;}
+  .pvp-side.s1 .ps-label{text-align:left;}
+  .pvp-row{grid-template-columns:36px 1fr auto;grid-auto-rows:auto;}
+  .pvp-row .pr-class{grid-column:2 / span 2;}
+}
 .help-numbers h4{font-family:var(--ui);font-size:13px;letter-spacing:.08em;text-transform:uppercase;
   margin:18px 0 8px;color:rgba(255,217,120,.85);}
 .help-numbers p{margin:0 0 6px;line-height:1.6;}
@@ -4234,6 +4325,7 @@ const App = {
   quizCard: null,
   quizDiff: 'medium',
   examResult: null,          // the marked paper, while you are reading it
+  pvp: null,                 // a local versus match, which owns its own world
 };
 
 function migrateCharacter(character){
@@ -7479,6 +7571,8 @@ function render(){
    bar while a floor is live, so the only way out of a fight is through it or
    by fleeing - not by wandering off to reshuffle a skill tree. */
 function inTheDungeon(){
+  if(App.topTab === 'play' && App.dungeonView === 'pvp'
+     && App.pvp && App.pvp.stage !== 'setup') return true;
   return App.topTab === 'play' && App.run && App.run.active
     && ['battle','loot','explore','checkpoint','loading','party',
         'dwarf_intro','dwarf_reward','dwarf_shop','dwarf_steal_warn','dwarf_gift','dwarf_result',
@@ -7492,7 +7586,9 @@ function renderNav(){
     b.addEventListener('click', ()=>setTopTab(id));
     nav.appendChild(b);
   });
-  if(inTheDungeon()) nav.appendChild(el(`<span class="navtab in-run">⚔ In a run — floor ${App.run.floor}</span>`));
+  if(App.dungeonView === 'pvp' && App.pvp && App.pvp.stage !== 'setup')
+    nav.appendChild(el(`<span class="navtab in-run">⚔ Versus — round ${App.pvp.round}</span>`));
+  else if(inTheDungeon()) nav.appendChild(el(`<span class="navtab in-run">⚔ In a run — floor ${App.run.floor}</span>`));
   const qs = el(`<div class="quickstats"></div>`);
   const prog = classProg();
   [
@@ -7957,6 +8053,9 @@ function renderHelpNumbers(){
 
     <h4>Hints and revives</h4>
     <p>${AD_HINTS_PER_RUN} hints and ${AD_REVIVES_PER_RUN} revive a run, each offered rather than taken, and both work without an ad if none is available. On an ordinary question a hint rules out a wrong answer and shows your own explanation with the answer struck out; on a marker it shows you a line off the marking guideline instead.</p>
+
+    <h4>Local Versus</h4>
+    <p>${PVP_MIN} to ${PVP_MAX} people on one device, any split you like. Everyone is built at level ${PVP_LEVEL} from their class alone — no gear, no skill tree, no potions, no artifacts, no hints, nothing to spend. A hit lands for ×${PVP_DMG} what it would underground, because six people taking turns is slower than one person descending and a match has to end. Versus never asks for a written answer, whatever exam mode is set to, and nothing that happens in it reaches your save.</p>
 
     <h4>Infinity</h4>
     <p>No final boss and no bottom. Floor ${MAX_FLOOR} is the end of the first descent; after it the regions cycle, the bosses return with a new title, and the numbers keep climbing. Everywhere else still ends at ${MAX_FLOOR}.</p>
@@ -11801,6 +11900,7 @@ function renderDungeon(){
     case 'hurt': wrap.appendChild(renderHurt()); break;
     case 'index': wrap.appendChild(renderIndex()); break;
     case 'gemshop': wrap.appendChild(renderGemShop()); break;
+    case 'pvp': wrap.appendChild(renderPvp()); break;
     case 'merchant': return renderMerchant();
     case 'dwarf_intro': wrap.appendChild(renderDwarfIntro()); break;
     case 'dwarf_reward': wrap.appendChild(renderDwarfReward()); break;
@@ -12643,6 +12743,7 @@ function renderHub(){
     ['🔨', 'Craft', 'Forge, enchant & ascend', '', ()=>{ App.dungeonView='craft'; render(); }, 'craft'],
     ['📖', 'Index', 'Discovered loot & foes', '', ()=>{ App.dungeonView='index'; render(); }, 'index'],
     ['💎', 'Gem Shop', 'One-run blessings', '', ()=>{ App.dungeonView='gemshop'; render(); }, 'gemshop'],
+    ['🤝', 'Local Versus', '2–6 of you, one device', '', openPvp, 'pvp'],
   ].forEach(([icon,label,sub,cls2,fn,tut])=>{
     const b = el(`<button class="px-btn hub-tile ${cls2}" data-tut="${tut}"><span class="ht-icon">${icon}</span><span class="ht-label">${label}</span><span class="ht-sub">${sub}</span></button>`);
     b.addEventListener('click', fn);
@@ -13761,6 +13862,535 @@ function renderEnchantBench(){
   });
   return panel;
 }
+/* ========================== LOCAL VERSUS ==============================
+   Two to six people, one device, one deck. You add everybody, split them into
+   two sides, and then it is a normal fight except that the thing across the
+   room is your friend and the questions come out of the same notes you have
+   both been avoiding.
+
+   It is deliberately its OWN mode and not a branch of the dungeon run. The
+   run is built around one save, one party and a hundred floors of state; a
+   match between friends on one phone shares none of that. So this keeps its
+   own little world in App.pvp, borrows the parts that are honestly reusable -
+   the classes, the skills, the sprites, the question engine, the damage
+   maths - and touches nothing you have earned. Nobody gains a level in here
+   and nobody loses one.
+
+   Everyone is built at the same level, because a fight your friend cannot win
+   because you have played more is not a fight. The only thing you bring to
+   this table is whether you know the material.
+   ===================================================================== */
+const PVP_MIN = 2, PVP_MAX = 6;
+const PVP_LEVEL = 10;             /* the level everybody is built at */
+/* Six people taking it in turns is slow in a way one person descending is
+   not, so a versus hit lands harder than the same hit would underground. At
+   1.0 a three-a-side match ran to fourteen rounds - eighty-odd turns, by
+   which point nobody is still playing. */
+const PVP_DMG = 1.75;
+const PVP_NAMES = ['Player 1','Player 2','Player 3','Player 4','Player 5','Player 6'];
+const PVP_TEAM_NAMES = ['Red','Blue'];
+/* A hot seat has one rule above all others: the next person must not see what
+   the last person saw. So every handover goes through a screen that shows
+   nothing but whose turn it is. */
+const PVP_PASS_MS = 0;            /* no timer - they tap when they have it */
+
+function pvpClassIds(){ return Object.keys(CLASSES); }
+/* The same build for everyone, at a level where the classes have grown into
+   themselves. Gear, skill trees and everything else you own stay outside. */
+function pvpStats(classId){
+  const c = CLASSES[classId] || CLASSES.warrior;
+  const n = PVP_LEVEL - 1;
+  return {
+    maxHp: Math.round(c.base.hp  + c.growth.hp  * n),
+    atk:   Math.round(c.base.atk + c.growth.atk * n),
+    def:   Math.round(c.base.def + c.growth.def * n),
+    spd:   c.base.spd,
+    energyMax: c.base.energyMax,
+    critChance: 8,
+  };
+}
+function pvpMakePlayer(i, classId, team){
+  const st = pvpStats(classId);
+  return {
+    id: uid(), name: PVP_NAMES[i] || ('Player ' + (i+1)), classId, team,
+    hp: st.maxHp, maxHp: st.maxHp, atk: st.atk, def: st.def, spd: st.spd,
+    energy: 1, energyMax: st.energyMax, critChance: st.critChance,
+    guard: 0, down: false, firstStrike: true,
+    asked: 0, right: 0, dealt: 0, taken: 0,
+  };
+}
+function defaultPvp(){
+  const ids = pvpClassIds();
+  return {
+    stage: 'setup',
+    players: [pvpMakePlayer(0, ids[0], 0), pvpMakePlayer(1, ids[1 % ids.length], 1)],
+    order: [], turn: 0, round: 1,
+    diff: 'medium', srcId: null,
+    question: null, pending: null, winner: null,
+    log: [], note: '',
+  };
+}
+function pvpTeam(p){ return PVP_TEAM_NAMES[p.team] || ('Team ' + (p.team+1)); }
+function pvpAlive(team){ return App.pvp.players.filter(p=>p.team===team && !p.down); }
+function pvpCurrent(){
+  const pv = App.pvp;
+  return pv.players.find(p=>p.id === pv.order[pv.turn]) || null;
+}
+function pvpEnemiesOf(p){ return App.pvp.players.filter(x=>x.team !== p.team && !x.down); }
+function pvpAlliesOf(p){ return App.pvp.players.filter(x=>x.team === p.team && !x.down); }
+function pvpSay(line){
+  App.pvp.log.unshift(line);
+  if(App.pvp.log.length > 40) App.pvp.log.length = 40;
+}
+
+/* ---- the skills a versus hero gets ------------------------------------
+   The three it learns plus the guard, and its base ultimate - which is the
+   one everybody has before any skill tree opens, so no build is ahead. */
+function pvpSkillSet(classId){
+  const cs = CLASS_SKILLS[classId] || CLASS_SKILLS.warrior;
+  return [SKILLS[cs.basic], SKILLS[cs.two], SKILLS[cs.three], SKILLS[cs.ult], SKILLS.block].filter(Boolean);
+}
+
+/* ---- starting a match -------------------------------------------------- */
+function pvpStart(){
+  const pv = App.pvp;
+  /* speed decides the order, and a tie is broken once so it does not wobble
+     from round to round */
+  const shuffled = shuffle(pv.players.slice());
+  shuffled.sort((a,b)=>(b.spd - a.spd));
+  pv.order = shuffled.map(p=>p.id);
+  pv.players.forEach(p=>{
+    const st = pvpStats(p.classId);
+    Object.assign(p, {hp:st.maxHp, maxHp:st.maxHp, atk:st.atk, def:st.def, spd:st.spd,
+      energy:1, energyMax:st.energyMax, critChance:st.critChance,
+      guard:0, down:false, firstStrike:true, asked:0, right:0, dealt:0, taken:0});
+  });
+  pv.turn = 0; pv.round = 1; pv.winner = null; pv.log = []; pv.question = null; pv.pending = null;
+  pvpSay('The two sides face each other. ' + (pvpCurrent() ? pvpCurrent().name + ' is quickest, and goes first.' : ''));
+  pv.stage = 'pass';
+  App.dungeonView = 'pvp';
+  render();
+}
+/* Which deck the questions come out of. A match uses one subject so both
+   sides are being asked the same thing. */
+function pvpSources(){
+  const pv = App.pvp;
+  if(pv.srcId === '__all__'){
+    let out = [];
+    App.subjects.forEach(s2=>{ out = out.concat(subjectSourcesFor(s2)); });
+    return out.length ? out : [{kind:'cards', subj:null}];
+  }
+  const subj = App.subjects.find(s2=>s2.id === pv.srcId);
+  const out = subjectSourcesFor(subj);
+  return out.length ? out : [{kind:'cards', subj:subj||null}];
+}
+function pvpAskQuestion(){
+  const pv = App.pvp;
+  /* Never a written marker in here. A twenty marker is thirty-five minutes of
+     one person typing while everybody else watches, which is not a party. */
+  pv.question = buildQuestion(pv.diff, pvpSources(), {noWritten:true});
+  pv.stage = 'question';
+  render();
+}
+
+/* ---- answering --------------------------------------------------------- */
+async function pvpAnswer(value){
+  const pv = App.pvp;
+  if(pv.stage !== 'question' || pv.resolving) return;
+  const me = pvpCurrent(), q = pv.question;
+  if(!me || !q) return;
+  pv.resolving = true;
+  const correct = q.mode === 'mcq' ? (value === q.correct) : fuzzyMatch(value, q.correct);
+  me.asked++;
+  if(correct) me.right++;
+  Sfx.play(correct ? 'right' : 'wrong');
+  pv.lastCorrect = correct;
+  pv.stage = 'reveal';
+  render();
+  await sleep(correct ? 650 : 1500);
+  pv.resolving = false;
+  if(correct){
+    /* Grace knits the cleric back together for knowing something. */
+    if(CLASSES[me.classId].passive === 'grace'){
+      const healed = Math.max(1, Math.round(me.maxHp * 0.04));
+      const was = me.hp;
+      me.hp = clamp(me.hp + healed, 0, me.maxHp);
+      if(me.hp > was) pvpSay(me.name + ' is knitted back together for ' + (me.hp - was) + '.');
+    }
+    if((DIFFS[pv.diff] || DIFFS.medium).energyBonus){
+      me.energy = clamp(me.energy + 1, 0, me.energyMax);
+    }
+    pv.stage = 'skill';
+    render();
+  } else {
+    pvpSay(me.name + ' misses it. The answer was "' + String(q.correct) + '".');
+    pv.note = 'Wrong — the turn is lost.';
+    pvpEndTurn();
+  }
+}
+
+/* ---- striking ---------------------------------------------------------- */
+function pvpPickSkill(skillId){
+  const pv = App.pvp, me = pvpCurrent();
+  const skill = SKILLS[skillId];
+  if(!me || !skill || pv.stage !== 'skill') return;
+  if((me.energy || 0) < (skill.cost || 0)) return;
+  if(skill.noDamage){
+    /* the guard, and anything else that only ever touches you */
+    me.energy -= (skill.cost || 0);
+    if(skill.shieldPct) me.guard = Math.max(me.guard || 0, skill.shieldPct);
+    if(skill.healPct){
+      const was = me.hp;
+      me.hp = clamp(me.hp + Math.round(me.maxHp * skill.healPct), 0, me.maxHp);
+      pvpSay(me.name + ' recovers ' + (me.hp - was) + '.');
+    }
+    pvpSay(me.name + ' raises a guard — the next hit lands for '
+           + Math.round((1 - (me.guard||0)) * 100) + '%.');
+    pv.note = '';
+    pvpEndTurn();
+    return;
+  }
+  pv.pending = skillId;
+  pv.stage = 'target';
+  render();
+}
+function pvpDamage(me, foe, skill){
+  let mult = skill.mult || 1;
+  /* Bulwark hits harder the worse it is going; Rage is the same idea. */
+  const passive = CLASSES[me.classId].passive;
+  const missing = clamp(1 - (me.hp / Math.max(1, me.maxHp)), 0, 1);
+  if(passive === 'bulwark' && missing > 0.5) mult *= 1 + 0.30 * ((missing - 0.5) / 0.5);
+  if(passive === 'rage') mult *= 1 + 0.45 * missing;
+  /* Momentum: the brawler is paid for being quicker than what he is hitting. */
+  if(passive === 'combo' && me.spd > foe.spd) mult *= 1 + Math.min(0.35, (me.spd - foe.spd) * 0.05);
+  let dmg = Math.max(1, Math.round(computeHit(me.atk, mult, foe.def, skill.defPierce || 0) * PVP_DMG));
+  /* the rogue opens every match with a certainty */
+  let crit = false;
+  if(passive === 'ambush' && me.firstStrike){ crit = true; me.firstStrike = false; }
+  else if(chance(me.critChance || 8)) crit = true;
+  if(crit){
+    dmg = Math.round(dmg * (passive === 'ambush' ? 1.75 : 1.5));
+    if(passive === 'attune') me.energy = clamp(me.energy + 1, 0, me.energyMax);
+  }
+  /* and the mage is made of paper */
+  if(CLASSES[foe.classId].passive === 'attune' && (skill.type || 'physical') === 'physical') dmg = Math.round(dmg * 1.25);
+  if(CLASSES[foe.classId].passive === 'bulwark') dmg = Math.max(1, Math.round(dmg * 0.85));
+  let guarded = false;
+  if((foe.guard || 0) > 0){ dmg = Math.max(1, Math.round(dmg * (1 - foe.guard))); guarded = true; foe.guard = 0; }
+  dmg = Math.max(1, dmg);
+  return {dmg, crit, guarded};
+}
+async function pvpStrike(targetId){
+  const pv = App.pvp, me = pvpCurrent();
+  const foe = pv.players.find(p=>p.id === targetId);
+  const skill = SKILLS[pv.pending];
+  if(!me || !foe || !skill || pv.stage !== 'target' || pv.resolving) return;
+  pv.resolving = true;
+  me.energy -= (skill.cost || 0);
+  const hits = skill.hits || 1;
+  let total = 0, anyCrit = false, guarded = false;
+  for(let i = 0; i < hits && !foe.down; i++){
+    const r = pvpDamage(me, foe, skill);
+    total += r.dmg; anyCrit = anyCrit || r.crit; guarded = guarded || r.guarded;
+    foe.hp = clamp(foe.hp - r.dmg, 0, foe.maxHp);
+    if(foe.hp <= 0) foe.down = true;
+  }
+  me.dealt += total; foe.taken += total;
+  if(skill.lifestealBonus){
+    const back = Math.max(1, Math.round(total * skill.lifestealBonus / 100));
+    me.hp = clamp(me.hp + back, 0, me.maxHp);
+  }
+  pv.hit = {id: foe.id, dmg: total, crit: anyCrit};
+  pvpSay(me.name + ' — ' + skill.name + ' — ' + total + ' on ' + foe.name
+         + (anyCrit ? ' (CRIT)' : '') + (guarded ? ' (guarded)' : '')
+         + (foe.down ? '. ' + foe.name + ' is down.' : '.'));
+  Sfx.play(anyCrit ? 'crit' : 'hit');
+  pv.stage = 'strike';
+  pv.pending = null;
+  render();
+  await sleep(900);
+  pv.hit = null;
+  pv.resolving = false;
+  const dead = [0,1].filter(t=>pvpAlive(t).length === 0);
+  if(dead.length){
+    pv.winner = dead.indexOf(0) >= 0 ? 1 : 0;
+    if(dead.length === 2) pv.winner = me.team;      /* cannot happen, but it would be their doing */
+    pv.stage = 'over';
+    Sfx.play('win');
+    render();
+    return;
+  }
+  pv.note = '';
+  pvpEndTurn();
+}
+/* ---- the handover ------------------------------------------------------ */
+function pvpEndTurn(){
+  const pv = App.pvp;
+  pv.question = null;
+  let guard = 0;
+  do {
+    pv.turn++;
+    if(pv.turn >= pv.order.length){ pv.turn = 0; pv.round++; }
+    guard++;
+  } while(guard < 40 && (() => { const n = pvpCurrent(); return !n || n.down; })());
+  const next = pvpCurrent();
+  if(next) next.energy = clamp(next.energy + 1, 0, next.energyMax);
+  pv.stage = 'pass';
+  render();
+}
+/* ---- the screens -------------------------------------------------------- */
+function pvpSetupScreen(){
+  const pv = App.pvp;
+  const outer = document.createDocumentFragment();
+  outer.appendChild(el(`<div class="px-panel">
+    <div class="dg-h2">Local Versus — ${PVP_MIN} to ${PVP_MAX} of you, one device</div>
+    <p class="pvp-intro">Everybody picks a class and a side, and then you take it in turns: answer the question, pick a move, pick who it lands on. Miss, and you have spent your turn. Between turns the screen hides everything and says whose go it is, so pass it along.</p>
+    <p class="pvp-intro muted">Everyone is built at <b>level ${PVP_LEVEL}</b>, same for all. <b>No gear, no skill tree, no potions, no artifacts, no hints</b> — there is nothing to spend and nothing to carry in. All that is left is whether you know the material and how you play the turn. Nothing in here touches your save either: no XP, no loot, nothing lost.</p>
+  </div>`));
+
+  /* ---- the roster ---- */
+  const roster = el(`<div class="px-panel"><div class="dg-h2">Who is playing</div><div class="pvp-roster"></div></div>`);
+  const list = roster.querySelector('.pvp-roster');
+  pv.players.forEach((p, i)=>{
+    const row = el(`<div class="pvp-row t${p.team}">
+      <span class="pr-art"></span>
+      <input class="pr-name" type="text" value="${escapeHtml(p.name)}" maxlength="14" aria-label="Player name">
+      <select class="pr-class" aria-label="Class">${pvpClassIds().map(cid=>
+        `<option value="${cid}"${cid===p.classId?' selected':''}>${escapeHtml(CLASSES[cid].name)}</option>`).join('')}</select>
+      <button class="pr-team">${escapeHtml(PVP_TEAM_NAMES[p.team])}</button>
+      <button class="pr-drop" title="Remove">×</button>
+    </div>`);
+    setArt(row.querySelector('.pr-art'), classArt(p.classId));
+    row.querySelector('.pr-name').addEventListener('input', e=>{ p.name = e.target.value.slice(0,14) || PVP_NAMES[i]; });
+    row.querySelector('.pr-class').addEventListener('change', e=>{ p.classId = e.target.value; render(); });
+    row.querySelector('.pr-team').addEventListener('click', ()=>{ p.team = p.team ? 0 : 1; render(); });
+    const drop = row.querySelector('.pr-drop');
+    if(pv.players.length <= PVP_MIN) drop.disabled = true;
+    else drop.addEventListener('click', ()=>{ pv.players.splice(i,1); render(); });
+    list.appendChild(row);
+  });
+  if(pv.players.length < PVP_MAX){
+    const add = el(`<button class="px-btn" style="margin-top:12px;">+ Add a player</button>`);
+    add.addEventListener('click', ()=>{
+      const i = pv.players.length;
+      const ids = pvpClassIds();
+      /* the smaller side gets them, so 2v2 and 3v3 fall out on their own */
+      const team = pvpAliveSetup(0) <= pvpAliveSetup(1) ? 0 : 1;
+      pv.players.push(pvpMakePlayer(i, ids[i % ids.length], team));
+      render();
+    });
+    roster.appendChild(add);
+  }
+  const counts = el(`<p class="pvp-count">${PVP_TEAM_NAMES[0]} ${pvpAliveSetup(0)} — v — ${pvpAliveSetup(1)} ${PVP_TEAM_NAMES[1]}</p>`);
+  roster.appendChild(counts);
+  outer.appendChild(roster);
+
+  /* ---- what you are being asked ---- */
+  const opts = el(`<div class="px-panel"><div class="dg-h2">What you are being asked</div>
+    <div class="pvp-opts"></div></div>`);
+  const ob = opts.querySelector('.pvp-opts');
+  const srcSel = el(`<label class="pvp-field">Questions from
+    <select>${App.subjects.map(s2=>`<option value="${escapeHtml(s2.id)}"${s2.id===pv.srcId?' selected':''}>${escapeHtml(s2.name)}</option>`).join('')
+      }<option value="__all__"${pv.srcId==='__all__'?' selected':''}>Everything at once</option></select></label>`);
+  srcSel.querySelector('select').addEventListener('change', e=>{ pv.srcId = e.target.value; });
+  if(!pv.srcId) pv.srcId = (App.subjects[0]||{}).id || '__all__';
+  ob.appendChild(srcSel);
+  const diffSel = el(`<label class="pvp-field">Difficulty
+    <select>${DIFF_IDS.map(id=>`<option value="${id}"${id===pv.diff?' selected':''}>${DIFFS[id].icon} ${DIFFS[id].label}</option>`).join('')}</select></label>`);
+  diffSel.querySelector('select').addEventListener('change', e=>{ pv.diff = e.target.value; });
+  ob.appendChild(diffSel);
+  opts.appendChild(el(`<p class="pvp-intro muted">Versus never asks for a written answer, whatever exam mode is set to — a twenty marker is half an hour of one person typing while everyone else watches.</p>`));
+  outer.appendChild(opts);
+
+  const go = el(`<div class="px-panel" style="text-align:center;"></div>`);
+  const ok = pvpAliveSetup(0) >= 1 && pvpAliveSetup(1) >= 1;
+  const btn = el(`<button class="px-btn gold big" ${ok?'':'disabled'}>⚔ Begin — ${pvpAliveSetup(0)}v${pvpAliveSetup(1)}</button>`);
+  if(ok) btn.addEventListener('click', pvpStart);
+  go.appendChild(btn);
+  if(!ok) go.appendChild(el(`<p class="pvp-intro">Both sides need somebody on them.</p>`));
+  const back = el(`<button class="px-btn" style="margin-top:10px;">Back</button>`);
+  back.addEventListener('click', ()=>{ App.dungeonView='hub'; render(); });
+  go.appendChild(back);
+  outer.appendChild(go);
+  return outer;
+}
+function pvpAliveSetup(team){ return App.pvp.players.filter(p=>p.team===team).length; }
+/* A match is never saved: it lives for as long as the screen is open and then
+   it is gone, the same as a game of cards on a table. */
+function openPvp(){
+  if(!App.pvp) App.pvp = defaultPvp();
+  if(App.pvp.stage !== 'setup' && App.pvp.stage !== 'over') App.pvp.stage = 'setup';
+  App.dungeonView = 'pvp';
+  render();
+}
+
+/* one fighter's card in the arena */
+function pvpFighterCard(p, opts){
+  const pv = App.pvp;
+  const me = pvpCurrent();
+  const isTurn = me && me.id === p.id && pv.stage !== 'pass';
+  const pct = Math.round(clamp(p.hp / Math.max(1, p.maxHp), 0, 1) * 100);
+  const hurt = pv.hit && pv.hit.id === p.id;
+  const card = el(`<div class="pvp-fighter t${p.team}${p.down?' down':''}${isTurn?' active':''}${hurt?' struck':''}${opts&&opts.pick?' pickable':''}">
+    <span class="pf-name">${escapeHtml(p.name)}${p.down?' <b class="pf-out">OUT</b>':''}</span>
+    <span class="pf-art${p.team===1?' mirror':''}"></span>
+    <span class="pf-hp"><span class="pf-hpfill" style="width:${pct}%"></span><span class="pf-hpnum">${p.hp} / ${p.maxHp}</span></span>
+    <span class="pf-meta">${escapeHtml(CLASSES[p.classId].name)} · ${'⚡'.repeat(Math.max(0,p.energy))}${p.guard?' · \U0001F6E1 guarded':''}</span>
+    ${hurt?`<span class="pf-float${pv.hit.crit?' crit':''}">-${pv.hit.dmg}${pv.hit.crit?'!':''}</span>`:''}
+  </div>`);
+  setArt(card.querySelector('.pf-art'), classArt(p.classId));
+  if(opts && opts.pick && !p.down) card.addEventListener('click', ()=>pvpStrike(p.id));
+  return card;
+}
+function pvpArena(opts){
+  const pv = App.pvp;
+  const wrap = el(`<div class="pvp-arena"></div>`);
+  [0,1].forEach(t=>{
+    const side = el(`<div class="pvp-side s${t}"><div class="ps-label">${escapeHtml(PVP_TEAM_NAMES[t])}</div><div class="ps-row"></div></div>`);
+    const row = side.querySelector('.ps-row');
+    pv.players.filter(p=>p.team===t).forEach(p=>{
+      const pickable = !!(opts && opts.pickTeam === t && !p.down);
+      row.appendChild(pvpFighterCard(p, {pick: pickable}));
+    });
+    wrap.appendChild(side);
+    if(t===0) wrap.appendChild(el(`<div class="pvp-vs">VS</div>`));
+  });
+  return wrap;
+}
+function pvpLogPanel(){
+  const pv = App.pvp;
+  if(!pv.log.length) return null;
+  return el(`<div class="pvp-log">${pv.log.slice(0,5).map(l=>`<div>${escapeHtml(l)}</div>`).join('')}</div>`);
+}
+
+function renderPvp(){
+  if(!App.pvp) App.pvp = defaultPvp();
+  const pv = App.pvp;
+  /* Four stages cannot draw themselves without a question in hand. Reaching
+     one of them without it is a bug somewhere else, but it must not be a blank
+     screen in the middle of somebody's turn - so it falls back to the
+     handover, which is always safe to show. */
+  if(['question','reveal','skill','target'].indexOf(pv.stage) >= 0 && !pv.question) pv.stage = 'pass';
+  if(pv.stage === 'setup') return pvpSetupScreen();
+  const outer = document.createDocumentFragment();
+  const me = pvpCurrent();
+
+  /* The handover. It shows the board and whose turn it is and NOTHING else -
+     no question, no answer, no last reveal - because the whole thing only
+     works if the person taking the phone has not already seen it. */
+  if(pv.stage === 'pass'){
+    outer.appendChild(el(`<div class="px-panel pvp-head"><div class="dg-h2">Round ${pv.round}</div></div>`));
+    outer.appendChild(pvpArena());
+    const card = el(`<div class="px-panel pvp-pass">
+      <div class="pp-who">Pass it to</div>
+      <div class="pp-name t${me?me.team:0}">${escapeHtml(me?me.name:'—')}</div>
+      <div class="pp-sub">${me?escapeHtml(CLASSES[me.classId].name + ' · ' + pvpTeam(me)):''}</div>
+      ${pv.note?`<div class="pp-note">${escapeHtml(pv.note)}</div>`:''}
+    </div>`);
+    const go = el(`<button class="px-btn gold big">I have it — ask me</button>`);
+    go.addEventListener('click', ()=>{ pv.note=''; pvpAskQuestion(); });
+    card.appendChild(go);
+    outer.appendChild(card);
+    const quit = el(`<button class="px-btn red" style="margin-top:10px;">End the match</button>`);
+    quit.addEventListener('click', ()=>{ App.pvp = defaultPvp(); App.dungeonView='hub'; render(); });
+    outer.appendChild(quit);
+    return outer;
+  }
+
+  if(pv.stage === 'over'){
+    const won = pv.winner;
+    outer.appendChild(el(`<div class="px-panel pvp-win">
+      <div class="pw-title t${won}">${escapeHtml(PVP_TEAM_NAMES[won])} wins</div>
+      <div class="pw-sub">after ${pv.round} round${pv.round===1?'':'s'}</div></div>`));
+    const table = el(`<div class="px-panel"><div class="dg-h2">How everybody did</div>
+      <table class="help-tbl pvp-table"><thead><tr><th>Player</th><th>Right</th><th>Dealt</th><th>Taken</th></tr></thead>
+      <tbody>${pv.players.slice().sort((a,b)=>b.right-a.right).map(p=>{
+        const pctR = p.asked ? Math.round(p.right/p.asked*100) : 0;
+        return `<tr><td><b class="t${p.team}">${escapeHtml(p.name)}</b> <span class="muted">${escapeHtml(CLASSES[p.classId].name)}</span></td>`
+             + `<td>${p.right}/${p.asked}${p.asked?' ('+pctR+'%)':''}</td><td>${p.dealt}</td><td>${p.taken}</td></tr>`;
+      }).join('')}</tbody></table></div>`);
+    outer.appendChild(table);
+    const row = el(`<div class="px-panel" style="text-align:center;"></div>`);
+    const again = el(`<button class="px-btn gold">Run it back</button>`);
+    again.addEventListener('click', ()=>{ pvpStart(); });
+    const edit = el(`<button class="px-btn" style="margin-left:10px;">Change the teams</button>`);
+    edit.addEventListener('click', ()=>{ pv.stage='setup'; render(); });
+    const out = el(`<button class="px-btn" style="margin-left:10px;">Done</button>`);
+    out.addEventListener('click', ()=>{ App.pvp = defaultPvp(); App.dungeonView='hub'; render(); });
+    row.appendChild(again); row.appendChild(edit); row.appendChild(out);
+    outer.appendChild(row);
+    return outer;
+  }
+
+  /* everything from here is somebody's live turn */
+  outer.appendChild(el(`<div class="px-panel pvp-head">
+    <div class="dg-h2">Round ${pv.round} — <b class="t${me?me.team:0}">${escapeHtml(me?me.name:'')}'s</b> turn</div>
+  </div>`));
+  outer.appendChild(pvpArena({pickTeam: pv.stage==='target' ? (me.team ? 0 : 1) : null}));
+
+  const panel = el(`<div class="px-panel pvp-panel"></div>`);
+  if(pv.stage === 'question'){
+    const q = pv.question;
+    const d = DIFFS[q.difficulty] || DIFFS.medium;
+    const body = el(`<div class="qbody"><span class="qtag"><b class="qdiff ${d.id}">${d.icon} ${d.label}</b> ${q.mode==='mcq'?'Multiple Choice':'Type the Answer'} — ${escapeHtml(q.sourceLabel||'')}</span>
+      <div class="qtext">${escapeHtml(q.prompt)}</div></div>`);
+    if(q.mode === 'mcq'){
+      q.options.forEach(opt=>{
+        const b = el(`<button class="mcq-opt">${escapeHtml(opt)}</button>`);
+        b.addEventListener('click', ()=>pvpAnswer(opt));
+        body.appendChild(b);
+      });
+    } else {
+      const row = el(`<div class="row" style="display:flex;gap:10px;margin-top:8px;"><input type="text" class="px-input" placeholder="Type your answer..." style="flex:1;"><button class="px-btn gold">Submit</button></div>`);
+      const input = row.querySelector('input');
+      const go = ()=>pvpAnswer(input.value);
+      row.querySelector('button').addEventListener('click', go);
+      input.addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
+      body.appendChild(row);
+      setTimeout(()=>{ try{ input.focus(); }catch(e){} }, 30);
+    }
+    panel.appendChild(body);
+  }
+  else if(pv.stage === 'reveal'){
+    const q = pv.question;
+    panel.appendChild(el(`<div class="feedback-msg ${pv.lastCorrect?'good':'bad'}">${
+      pv.lastCorrect ? '✔ Correct — pick your move.'
+      : '✘ Wrong. The answer was: ' + escapeHtml(String(q.correct))
+        + (q.why ? `<div class="qwhy">${escapeHtml(q.why)}</div>` : '')}</div>`));
+  }
+  else if(pv.stage === 'skill'){
+    panel.appendChild(el(`<div class="feedback-msg good">✔ Correct — choose your move.</div>`));
+    const grid = el(`<div class="skillbtns"></div>`);
+    pvpSkillSet(me.classId).forEach(skill=>{
+      const cost = skill.cost || 0;
+      const afford = (me.energy||0) >= cost;
+      const tag = skill.ultimate ? 'ULTIMATE' : (skill.guard ? 'GUARD' : (cost===0 ? 'BASIC' : (skill.noDamage ? 'BUFF' : 'SKILL')));
+      const est = skill.noDamage ? 'no damage' : ('~' + Math.max(1, Math.round(me.atk * (skill.mult||1) * 0.8)) + ' dmg');
+      const b = el(`<button class="skillbtn${skill.ultimate?' ult':''}${skill.noDamage?' buff':''}" ${afford?'':'disabled'}>
+        <span class="sname">${escapeHtml(skill.name)}<span class="stag">${tag}</span></span>
+        <span class="sest">${est} · ${cost===0?'free':(cost+' ⚡')}</span>
+        <span class="sdesc">${escapeHtml(skill.desc||'')}</span>
+      </button>`);
+      if(afford) b.addEventListener('click', ()=>pvpPickSkill(skill.id));
+      grid.appendChild(b);
+    });
+    panel.appendChild(grid);
+  }
+  else if(pv.stage === 'target'){
+    const sk = SKILLS[pv.pending];
+    panel.appendChild(el(`<div class="feedback-msg good">${escapeHtml(sk?sk.name:'Your move')} — <b>pick who it lands on</b>, up there.</div>`));
+    const back = el(`<button class="px-btn">← A different move</button>`);
+    back.addEventListener('click', ()=>{ pv.pending=null; pv.stage='skill'; render(); });
+    panel.appendChild(back);
+  }
+  else if(pv.stage === 'strike'){
+    panel.appendChild(el(`<div class="feedback-msg good">${escapeHtml(pv.log[0]||'')}</div>`));
+  }
+  outer.appendChild(panel);
+  const log = pvpLogPanel();
+  if(log) outer.appendChild(log);
+  return outer;
+}
 /* ============================== THE TUTORIAL ==============================
    Nobody reads a wall of rules, and this game has a lot of rules. So one of
    the four sages who sealed Malakor - the last one still walking the tower -
@@ -13793,6 +14423,9 @@ const TUTORIAL = [
 
   {tab:'play', view:'hub', at:'[data-tut="gemshop"]', side:'bottom', title:'Blessings, bought with gems',
    text:"Gems come off bosses and out of chests. These are one-run blessings — extra health, free hints, a feather that catches you the first time you fall. Spend them on the run you mean to go deep on."},
+
+  {tab:'play', view:'hub', at:'[data-tut="pvp"]', side:'bottom', title:'And one for when somebody else is here',
+   text:"Local Versus. Two to six of you on this one device, split into two sides — one against one, two against two, three against three. Same questions, out of the same notes, except now the thing across the room is your friend. Answer it, pick a move, pick who it lands on; miss, and you have spent your turn. Between every turn the screen hides everything and says whose go it is, so pass it along. Everyone is built the same, there are no items and no hints and nothing to spend, and it does not touch your save. It is knowledge and how you play the turn, and nothing else."},
 
   {tab:'study', view:'hub', at:'[data-tut="studytab"]', side:'bottom', title:'And this is the other half',
    text:"This is the part that is actually a revision app. Paste or upload what you are studying and it becomes the questions the dungeon asks you. There is a generator built in that costs nothing and works offline; if you have an AI key you can use that instead, and it writes better wrong answers."},

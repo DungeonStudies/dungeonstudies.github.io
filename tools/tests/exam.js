@@ -323,7 +323,8 @@ const {chromium}=require('playwright');
     /* ---------- 10. the tour and the help page know about all of it ---------- */
     const tourText = TUTORIAL.map(s2=>s2.title+' '+s2.text).join(' ').toLowerCase();
     [['exam mode','exam mode'],['the mark as damage','mark'],['block','block'],
-     ['the glossary','glossary'],['the syllabus','syllabus'],['infinity being endless','no bottom']]
+     ['the glossary','glossary'],['the syllabus','syllabus'],['infinity being endless','no bottom'],
+     ['local versus','local versus']]
       .forEach(([what,word])=>{ if(tourText.indexOf(word) < 0) bad.push('the tour never mentions '+what); });
     App.topTab='study'; App.studyView='settings'; render(); await wait(200);
     if(!document.querySelector('#exam-on')) bad.push('Settings has no exam mode switch');
