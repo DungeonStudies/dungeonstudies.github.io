@@ -783,6 +783,23 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .px-btn.big{font-size:16px;padding:14px 26px;}
 
 .pvptabs button{font-size:14px;}
+/* the technique branch, and the bar you take down with you */
+.tree-tier.tech-tier .tt-label{color:rgba(143,240,187,.85);}
+.tree-tier.tech-tier .node-btn{border-color:rgba(63,207,142,.35);}
+.bar-slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:6px;}
+.bar-slot{position:relative;display:grid;gap:3px;padding:12px 14px;border-radius:12px;
+  border:1px solid rgba(255,217,120,.4);background:linear-gradient(158deg,rgba(44,36,26,.7),rgba(22,18,30,.8));}
+.bar-slot.empty{border-style:dashed;border-color:var(--hairline);opacity:.5;}
+.bs-name{font-family:var(--ui);font-weight:800;font-size:14px;color:#fff;}
+.bs-cost{font-family:var(--ui);font-size:11px;color:rgba(255,255,255,.55);}
+.bs-drop{position:absolute;top:7px;right:8px;width:22px;height:22px;border-radius:6px;cursor:pointer;
+  background:rgba(255,255,255,.08);border:1px solid var(--hairline);color:rgba(255,255,255,.65);font-weight:800;}
+.bar-pool{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;}
+.pool-skill .stag{margin-left:7px;font-size:9px;letter-spacing:.1em;padding:2px 5px;border-radius:4px;
+  background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);vertical-align:middle;}
+.pool-skill[disabled]{opacity:.35;}
+.ab-target.ally{border-color:rgba(143,240,187,.5);}
+.ab-target.ally .abt-fill{background:linear-gradient(90deg,#3fcf8e,#8ff0bb);}
 .net-codecard{text-align:center;}
 .nc-label{font-family:var(--ui);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
   color:rgba(255,255,255,.45);}
@@ -3119,6 +3136,33 @@ function localAnalyze(text){
 const SKILLS = {
   /* --- Warrior: slow, heavy, and the only one who can stop a turn dead --- */
   warrior_slash:     {id:'warrior_slash',     name:'Slash',             cost:0, mult:1.0, type:'physical', desc:'A clean sword stroke.'},
+  /* ======================= TECHNIQUES =======================
+     One per class, off a side branch of the tree that evolution does not
+     need. Each one does something no stat line can: it changes who can be
+     hit, who gets healed, or whether a turn happens at all. Between them
+     they are also the first real rock-paper-scissors this game has had - the
+     brawler's bleed is a direct answer to the cleric, and the cleric's
+     mending is a direct answer back.
+     ========================================================= */
+  warrior_taunt:     {id:'warrior_taunt',     name:'Taunt',             cost:1, mult:0, type:'physical',
+                      noDamage:true, taunt:2, shieldPct:0.30, classes:['warrior'],
+                      desc:'TECHNIQUE \u2014 roar them onto you. For 2 turns everything has to come at you, and it lands for 30% less while it does.'},
+  mage_empower:      {id:'mage_empower',      name:'Empower',           cost:2, mult:0, type:'lightning',
+                      noDamage:true, allyTarget:true, cooldown:4, classes:['mage'],
+                      buffSelf:{stat:'atkPct', amount:0.30, turns:4, name:'Empowered', glow:'arcane'},
+                      desc:'TECHNIQUE \u2014 lend the power out: +30% Attack for 4 turns to anyone on your side, or keep it yourself. 4-turn cooldown.'},
+  cleric_mending:    {id:'cleric_mending',    name:'Mending Light',     cost:2, mult:0, type:'holy',
+                      noDamage:true, allyTarget:true, cleanse:true, wardTurns:1, healPct:0.10, classes:['cleric'],
+                      desc:'TECHNIQUE \u2014 strips every wound and curse off one of you, heals 10%, and nothing new can take hold on them for a turn.'},
+  rogue_silence:     {id:'rogue_silence',     name:'Silence',           cost:2, mult:0.9, type:'bleed',
+                      silence:1, classes:['rogue'],
+                      desc:'TECHNIQUE \u2014 a quick stab somewhere that matters. It loses its next turn entirely.'},
+  rogue_vanish:      {id:'rogue_vanish',      name:'Smoke Bomb',        cost:2, mult:0, type:'shadow',
+                      noDamage:true, untargetable:1, classes:['rogue'],
+                      desc:'TECHNIQUE \u2014 drop smoke and step out of it somewhere else. Nothing can target you until your next turn.'},
+  brawler_rend:      {id:'brawler_rend',      name:'Rend',              cost:2, mult:1.4, type:'bleed',
+                      dot:{type:'bleed', turns:3, pct:0.09}, healCut:0.5, healCutTurns:3, classes:['brawler'],
+                      desc:'TECHNIQUE \u2014 opens them up and keeps them open: a bleed, and while it runs everything that would heal them heals half.'},
   block:             {id:'block',             name:'Block',             cost:0, mult:0, type:'physical',
                       noDamage:true, shieldPct:0.5, guard:true,
                       desc:'Raise your guard — the next hit you take lands for HALF. Costs you this turn\'s strike.'},
@@ -3145,9 +3189,14 @@ const SKILLS = {
   rogue_smokebomb:   {id:'rogue_smokebomb',   name:'Smoke Bomb',        cost:5, mult:2.1, type:'poison', guaranteedCrit:true, nullifyNextWrong:true, dot:{type:'poison', turns:3, pct:0.12, stacks:2}, ultimate:true, desc:'ULTIMATE — critical strike, two poison stacks, and your next wrong answer deals 0.'},
   /* --- Cleric: pure holy. Undead do not enjoy any of it --- */
   cleric_swing:      {id:'cleric_swing',      name:'Mace Swing',        cost:0, mult:1.0, type:'holy', desc:'A steady swing of the blessed mace.'},
-  cleric_benediction:{id:'cleric_benediction',name:'Benediction',       cost:2, mult:0,   type:'holy', noDamage:true, cooldown:5, healPct:0.10,
-                      buffSelf:{stat:'atkPct', amount:0.30, turns:5, name:'Benediction', glow:'holy'},
-                      desc:'BUFF — heals 10% of max HP and blesses the mace: +30% Attack for 5 turns — long enough to carry an ultimate. 5-turn cooldown.'},
+  /* The cleric used to be a damage buff that happened to heal. It is the
+     other way round now: the blessing is smaller and the mending is much
+     bigger, and in a fight with a side to it the healing can go to whoever
+     needs it rather than always to the person casting. */
+  cleric_benediction:{id:'cleric_benediction',name:'Benediction',       cost:2, mult:0,   type:'holy', noDamage:true, cooldown:4, healPct:0.26,
+                      allyTarget:true,
+                      buffSelf:{stat:'atkPct', amount:0.15, turns:5, name:'Benediction', glow:'holy'},
+                      desc:'BUFF — heals 26% of max HP, on yourself or on whoever on your side needs it, and blesses the mace: +15% Attack for 5 turns. 4-turn cooldown.'},
   cleric_consecrate: {id:'cleric_consecrate', name:'Consecrate',        cost:3, mult:1.7, type:'holy', shieldPct:0.5, desc:'Hallowed ground — halves the next enemy hit.'},
   cleric_smite:      {id:'cleric_smite',      name:'Smite',             cost:5, mult:3.0, type:'holy', defPierce:0.35, ultimate:true, desc:'ULTIMATE — pure holy fire; pierces 35% of defense. No healing.'},
   cleric_holynova:   {id:'cleric_holynova',   name:'Holy Nova',         cost:5, mult:3.1, type:'holy', ultimate:true, desc:'ULTIMATE — a detonation of raw light. No healing.'},
@@ -3190,22 +3239,87 @@ const MONSTER_BOOKS = {
    you hits for half. That is the whole trade, and it is the move that makes a
    boss's wind-up survivable without a potion. */
 const BLOCK_CUT = 0.5;
-function currentSkillSet(){
-  const ch = App.character;
-  const prog = classProg();
-  const cs = CLASS_SKILLS[ch.classId];
+/* Everything this class is ALLOWED to carry: its own three, its ultimate
+   once the tree has opened it, any technique it has taken, and any monster
+   book it has read. Block is not in here because Block is never a choice -
+   it is always there and it never costs you a slot. */
+function eligibleSkills(classId, ch){
+  ch = ch || App.character;
+  const cid = classId || ch.classId;
+  const prog = ch.classProgress[cid];
+  const cs = CLASS_SKILLS[cid];
+  const out = [cs.basic, cs.two, cs.three];
+  /* The ultimate has always been yours from the start - the tier-2 node that
+     claims to unlock it has never actually gated it, it gates the evolution.
+     Gating it here would quietly take the ultimate off every character that
+     had not spent a point there, which is not a change to make in passing. */
   let ult = cs.ult;
-  if(prog.evolution==='A' && prog.allocated[ch.classId+'_t3_A']) ult = cs.ultA;
-  if(prog.evolution==='B' && prog.allocated[ch.classId+'_t3_B']) ult = cs.ultB;
-  const list = [SKILLS[cs.basic], SKILLS[cs.two], SKILLS[cs.three], SKILLS[ult], SKILLS.block];
-  Object.keys(ch.learnedSkills||{}).forEach(id=>{
-    const s = SKILLS[id];
-    if(s && (!s.classes || s.classes.indexOf(ch.classId)>=0)) list.push(s);
+  if(prog && prog.evolution==='A' && prog.allocated[cid+'_t3_A']) ult = cs.ultA;
+  if(prog && prog.evolution==='B' && prog.allocated[cid+'_t3_B']) ult = cs.ultB;
+  out.push(ult);
+  /* techniques, in the order the tree lists them */
+  (CLASSES[cid].tree || []).forEach(node=>{
+    if(node.branch === 'tech' && prog && prog.allocated[node.id] && node.effect.unlockSkill)
+      out.push(node.effect.unlockSkill);
   });
+  Object.keys(ch.learnedSkills||{}).forEach(id=>{
+    const sk = SKILLS[id];
+    if(sk && (!sk.classes || sk.classes.indexOf(cid) >= 0)) out.push(id);
+  });
+  /* a skill that says who may carry it is checked, every time */
+  return out.filter((id,i)=>{
+    const sk = SKILLS[id];
+    if(!sk || out.indexOf(id) !== i) return false;
+    return !sk.classes || sk.classes.indexOf(cid) >= 0;
+  });
+}
+const SKILL_SLOTS = 4;        /* plus Block, which is always there */
+/* What is actually on the bar. Nothing chosen yet means the classic four. */
+function skillBar(classId, ch){
+  ch = ch || App.character;
+  const cid = classId || ch.classId;
+  const prog = ch.classProgress[cid];
+  const able = eligibleSkills(cid, ch);
+  const chosen = ((prog && prog.bar) || []).filter(id=>able.indexOf(id) >= 0);
+  if(chosen.length) return chosen.slice(0, SKILL_SLOTS);
+  return able.slice(0, SKILL_SLOTS);
+}
+function setSkillBar(ids){
+  const prog = classProg();
+  const able = eligibleSkills(App.character.classId);
+  prog.bar = (ids||[]).filter(id=>able.indexOf(id) >= 0).slice(0, SKILL_SLOTS);
+  saveCharacter();
+}
+function currentSkillSet(){
+  const list = skillBar().map(id=>SKILLS[id]).filter(Boolean);
+  list.push(SKILLS.block);
   return list;
 }
+/* The technique branch hangs off the side of the tree and feeds nothing.
+   Evolution needs t2_atk or t2_def plus t2_skill; a technique node is on
+   neither path, so you can take all of them and still evolve, or skip them
+   entirely and evolve a point sooner. That is the whole point of it being a
+   branch rather than a rung. */
+const CLASS_TECHNIQUES = {
+  warrior: ['warrior_taunt'],
+  mage:    ['mage_empower'],
+  cleric:  ['cleric_mending'],
+  rogue:   ['rogue_silence', 'rogue_vanish'],
+  brawler: ['brawler_rend'],
+};
+function techniqueNodes(classId){
+  return (CLASS_TECHNIQUES[classId] || []).map((sid, i)=>{
+    const sk = SKILLS[sid];
+    return {
+      id: classId + '_tech_' + i, tier: 4, branch: 'tech', name: sk.name, cost: 2,
+      requires: [],                       /* nothing gates it and it gates nothing */
+      effect: {unlockSkill: sid},
+      desc: sk.desc.replace(/^TECHNIQUE \u2014 /, ''),
+    };
+  });
+}
 function buildClassTree(classId, n, baseSkillId, evoA, evoB){
-  return [
+  return techniqueNodes(classId).concat([
     {id:classId+'_t1_atk',  tier:1, branch:'core', name:n.t1atk,  cost:1, requires:[],                                  effect:{atk:4},          desc:'+4 Attack'},
     {id:classId+'_t1_hp',   tier:1, branch:'core', name:n.t1hp,   cost:1, requires:[],                                  effect:{hp:18},          desc:'+18 Max HP'},
     {id:classId+'_t1_crit', tier:1, branch:'core', name:n.t1crit, cost:1, requires:[],                                  effect:{critChance:5},   desc:'+5% Crit Chance'},
@@ -3214,7 +3328,7 @@ function buildClassTree(classId, n, baseSkillId, evoA, evoB){
     {id:classId+'_t2_skill',tier:2, branch:'core', name:n.t2skill,cost:2, requires:[classId+'_t1_crit'],                effect:{unlockSkill:baseSkillId}, desc:'Unlocks your ULTIMATE: '+SKILLS[baseSkillId].name},
     {id:classId+'_t3_A',    tier:3, branch:'A',    name:n.evoA,   cost:3, requires:[classId+'_t2_atk',classId+'_t2_skill'], effect:{evolution:'A', mods:evoA.mods, evoSkill:evoA.skill}, desc:evoA.desc},
     {id:classId+'_t3_B',    tier:3, branch:'B',    name:n.evoB,   cost:3, requires:[classId+'_t2_def',classId+'_t2_skill'], effect:{evolution:'B', mods:evoB.mods, evoSkill:evoB.skill}, desc:evoB.desc},
-  ];
+  ]);
 }
 const CLASSES = {
   warrior:{
@@ -3778,7 +3892,7 @@ const MON_SKILLS = {
   mend: {name:'Mend', tell:'it knits itself shut', skipHit:true,
     ok:(m)=>m.hp < m.maxHp*0.55 && !m.mended,
     score:(m,st)=>m.hp/m.maxHp < 0.3 ? 2.2 : 0.7,
-    run:(m)=>{ const h = Math.round(m.maxHp*0.18); m.hp = clamp(m.hp + h, 0, m.maxHp);
+    run:(m)=>{ const h = Math.round(m.maxHp*0.18 * (1 - (m.healCut||0))); m.hp = clamp(m.hp + h, 0, m.maxHp);
                m.mended = true; return m.name + ' mends — it takes ' + h + ' HP back.'; }},
   /* the one that has actually been paying attention */
   disrupt: {name:'Disrupt', tell:'it lunges for your hands', skipHit:true,
@@ -4096,6 +4210,10 @@ function bossAfterMonsterHit(totalDamage, charged){
     m.hp = clamp(m.hp + heal, 0, m.maxHp);
     notes.push('+'+heal+' drained');
   }
+  if((App.run.ward||0) > 0 && ['venom','infernalBreath','devour'].indexOf(ab) >= 0){
+    notes.push('The light holds — nothing takes hold.');
+    ab = null;
+  }
   if(ab==='venom'){ App.run.poison = {turnsLeft:2, perTurn: Math.max(2, Math.round(totalDamage*0.25))}; notes.push('Poisoned!'); }
   if(ab==='deepFreeze' && charged){ App.run.frozen = true; notes.push('Frozen!'); }
   if(ab==='infernalBreath' && charged){ App.run.playerBurn = {turnsLeft:3, perTurn: Math.max(3, Math.round(totalDamage*0.2))}; notes.push('Burning!'); }
@@ -4314,7 +4432,7 @@ function defaultRun(){
     active:false, floor:1, hp:100, maxHp:100, energy:0, difficulty:null,
     monster:null, dizzyIgnored:false,
     burn:{turnsLeft:0, perTurn:0}, shieldPct:0, nullifyNextWrong:false, freeHintNext:false,
-    examMult:0,
+    examMult:0, ward:0, untargetable:0, taunt:0, healCut:0, healCutTurns:0,
     poison:{turnsLeft:0, perTurn:0}, playerBurn:{turnsLeft:0, perTurn:0},
     playerBleed:{turnsLeft:0, perTurn:0}, monsterBuffs:[], omen:null,
     party:[], heroes:{}, slot:0,
@@ -8724,6 +8842,13 @@ function spawnDust(host){
 const SKILL_FX = {
   /* every class: the guard. It goes nowhere - that is the point of it. */
   block:            {pose:'bash',   kind:'nova',   hue:'steel',  self:'steel', move:'plant'},
+  /* the techniques */
+  warrior_taunt:    {pose:'bash',   kind:'quake',  hue:'steel',  self:'steel', move:'plant'},
+  mage_empower:     {pose:'raise',  kind:'nova',   hue:'arcane', self:'arcane', move:'invoke'},
+  cleric_mending:   {pose:'raise',  kind:'nova',   hue:'holy',   self:'holy',  big:1, move:'invoke'},
+  rogue_silence:    {pose:'thrust', kind:'hit',    hue:'shadow', move:'behind'},
+  rogue_vanish:     {pose:'raise',  kind:'nova',   hue:'shadow', self:'shadow', move:'plant'},
+  brawler_rend:     {pose:'atk',    kind:'slash',  hue:'blood',  n:2, move:'step'},
   /* warrior */
   warrior_slash:    {pose:'atk',    kind:'slash',  hue:'steel',  n:1, selfOnly:1, selfOnly:1, selfOnly:1, move:'step'},
   warrior_bash:     {pose:'bash',   kind:'quake',  hue:'steel',  move:'charge'},
@@ -9769,6 +9894,10 @@ function startNewTurn(){
     if(m.hp<=0){ handleVictory(); return; }
   }
   if(App.run.hintsSealed && (App.run.bossTurn||0) % 3 !== 0) App.run.hintsSealed = false;
+  ['ward','untargetable','taunt'].forEach(k=>{ if(App.run[k] > 0) App.run[k]--; });
+  if(App.run.healCutTurns > 0 && --App.run.healCutTurns <= 0) App.run.healCut = 0;
+  if(App.run.monster && App.run.monster.healCutTurns > 0 && --App.run.monster.healCutTurns <= 0)
+    App.run.monster.healCut = 0;
   App.run.examMult = 0;
   App.examResult = null;
   App.currentQuestion = null;
@@ -10156,7 +10285,7 @@ async function resolveAnswer(q, correct, payoff){
     /* Grace: the cleric knits itself back together as it answers. */
     if(CLASSES[App.character.classId].passive === 'grace'){
       const stg = combatStats();
-      const healed = Math.max(1, Math.round(stg.maxHp * 0.04));
+      const healed = Math.max(1, Math.round(stg.maxHp * 0.04 * (1 - (App.run.healCut||0))));
       const before = App.run.hp;
       App.run.hp = clamp(App.run.hp + healed, 0, stg.maxHp);
       const got = App.run.hp - before;
@@ -10239,6 +10368,26 @@ async function applySkillSelfEffects(opts, st, els){
     App.run.shieldPct = Math.max(App.run.shieldPct||0, opts.shieldPct);
     notes.push('Guard up — the next hit lands for ' + Math.round((1-App.run.shieldPct)*100) + '%');
   }
+  /* ---- the techniques, where they touch you rather than it ---- */
+  if(opts.cleanse){
+    /* everything open on you, closed */
+    const had = ['poison','playerBurn','playerBleed'].filter(k=>App.run[k] && App.run[k].turnsLeft>0).length;
+    ['poison','playerBurn','playerBleed'].forEach(k=>{ App.run[k] = {turnsLeft:0, perTurn:0}; });
+    App.run.healCut = 0; App.run.healCutTurns = 0;
+    notes.push(had ? ('Mending Light — ' + had + ' wound' + (had===1?'':'s') + ' closed') : 'Mending Light — nothing left to close');
+  }
+  if(opts.wardTurns){
+    App.run.ward = Math.max(App.run.ward||0, opts.wardTurns + 1);   /* +1: this turn does not count */
+    notes.push('Warded — nothing new takes hold for a turn');
+  }
+  if(opts.untargetable){
+    App.run.untargetable = Math.max(App.run.untargetable||0, opts.untargetable + 1);
+    notes.push('Smoke — nothing can find you until your next turn');
+  }
+  if(opts.taunt){
+    App.run.taunt = Math.max(App.run.taunt||0, opts.taunt + 1);
+    notes.push('Taunted — it is coming at you, and only at you');
+  }
   if(opts.nullifyNextWrong) App.run.nullifyNextWrong = true;
   if(opts.freeHintNext) App.run.freeHintNext = true;
   if(opts.cooldown) setCooldown(opts.id, opts.cooldown);
@@ -10260,6 +10409,9 @@ async function resolvePlayerHit(mult, opts, isSkill, moreHits, skill){
     render();
     return;
   }
+  /* a stab in the wrong place, and a wound that will not close */
+  if(opts.silence){ m.silenced = Math.max(m.silenced||0, opts.silence); }
+  if(opts.healCut){ m.healCut = opts.healCut; m.healCutTurns = opts.healCutTurns || 3; }
   /* Armour-piercing belongs to one class. The mage used to shred it too,
      which left the brawler's whole identity doing a job someone else did
      better from across the room. */
@@ -11160,7 +11312,7 @@ async function resolveBossUltimate(){
     perTurn: Math.max(1, Math.round(st.maxHp*ult.burnPct))}; notes.push('burning for ' + ult.burnTurns + ' turns'); }
   if(ult.frozen){ App.run.frozen = true; notes.push('your next hit is halved'); }
   if(ult.sealHints){ App.run.hintsSealed = true; notes.push('hints sealed'); }
-  if(ult.healPct){ const h = Math.round(m.maxHp*ult.healPct);
+  if(ult.healPct){ const h = Math.round(m.maxHp*ult.healPct * (1 - (m.healCut||0)));
     m.hp = clamp(m.hp + h, 0, m.maxHp); notes.push('it healed ' + h);
     updateHpBar(els.monsterHpFill, els.monsterHpNum, m.hp, m.maxHp); }
   App.run.bossNote = notes.join(' · ');
@@ -11175,6 +11327,25 @@ async function resolveMonsterHit(){
   const battleEls = getBattleEls();
   const st = combatStats();
   const m = App.run.monster;
+  /* Silence: not stunned, just not able to do anything with the turn. */
+  if((m.silenced||0) > 0){
+    m.silenced--;
+    if(battleEls.monsterSprite) await playAnim(battleEls.monsterSprite, 'hitflash', 300);
+    showFloatingNumber(battleEls.monsterHost, 'SILENCED', true);
+    App.run.bossNote = m.name + ' cannot make a sound, let alone a move.';
+    await sleep(520); await saveRun();
+    App.currentPhase = 'postattack'; render();
+    return;
+  }
+  /* Smoke: it swings, and there is nobody there. */
+  if((App.run.untargetable||0) > 0){
+    await monsterAttackIntro(battleEls, false);
+    showFloatingNumber(battleEls.playerHost, 'MISSED', false);
+    App.run.bossNote = m.name + ' swings through the smoke and finds nothing.';
+    await sleep(460); await saveRun();
+    App.currentPhase = 'postattack'; render();
+    return;
+  }
   if(isStunned()){
     m.stunTurns--;
     if(battleEls.monsterSprite) await playAnim(battleEls.monsterSprite, 'hitflash', 300);
@@ -11186,8 +11357,9 @@ async function resolveMonsterHit(){
     render();
     return;
   }
-  /* Deep enough, and it spends the turn on something better than a swing. */
-  const act = monsterChooseSkill();
+  /* Deep enough, and it spends the turn on something better than a swing -
+     unless you have just made it personal, in which case it is coming. */
+  const act = (App.run.taunt||0) > 0 ? null : monsterChooseSkill();
   let skillNote = null, skillMult = 1;
   if(act){
     m.skillCd = 2;
@@ -14213,6 +14385,8 @@ function pvpMakePlayer(i, classId, team){
     hp: st.maxHp, maxHp: st.maxHp, atk: st.atk, def: st.def, spd: st.spd,
     energy: 1, energyMax: st.energyMax, critChance: st.critChance,
     guard: 0, down: false, firstStrike: true,
+    silenced: 0, hidden: 0, ward: 0, taunt: 0, healCut: 0, healCutTurns: 0,
+    bleed: 0, bleedTurns: 0, buffs: [],
     asked: 0, right: 0, dealt: 0, taken: 0,
   };
 }
@@ -14234,6 +14408,18 @@ function pvpCurrent(){
   return pv.players.find(p=>p.id === pv.order[pv.turn]) || null;
 }
 function pvpEnemiesOf(p){ return App.pvp.players.filter(x=>x.team !== p.team && !x.down); }
+/* Who you are actually allowed to hit. Smoke takes somebody off the list;
+   a taunt takes everybody else off it. A taunt beats smoke, because a
+   taunter who has made themselves the only target has also made themselves
+   findable - and because the alternative is a turn with nothing to hit. */
+function pvpTargetsFor(p){
+  const foes = pvpEnemiesOf(p);
+  const taunting = foes.filter(x=>(x.taunt||0) > 0);
+  if(taunting.length) return taunting;
+  const open = foes.filter(x=>(x.hidden||0) <= 0);
+  return open.length ? open : foes;      /* everyone hidden: the smoke clears for one swing */
+}
+function pvpAlliesPickable(p){ return App.pvp.players.filter(x=>x.team === p.team && !x.down); }
 function pvpAlliesOf(p){ return App.pvp.players.filter(x=>x.team === p.team && !x.down); }
 function pvpSay(line){
   App.pvp.log.unshift(line);
@@ -14243,9 +14429,17 @@ function pvpSay(line){
 /* ---- the skills a versus hero gets ------------------------------------
    The three it learns plus the guard, and its base ultimate - which is the
    one everybody has before any skill tree opens, so no build is ahead. */
+/* Versus gives everybody their class's WHOLE tree kit - the three, the base
+   ultimate, every technique that class has - and nothing from outside it. No
+   monster books, no evolved ultimates, nothing anybody had to grind for. It
+   is the same reason nobody brings gear: the kit is the class, not the save.
+   Skills from the skill tree, and only those. */
 function pvpSkillSet(classId){
   const cs = CLASS_SKILLS[classId] || CLASS_SKILLS.warrior;
-  return [SKILLS[cs.basic], SKILLS[cs.two], SKILLS[cs.three], SKILLS[cs.ult], SKILLS.block].filter(Boolean);
+  const ids = [cs.basic, cs.two, cs.three, cs.ult].concat(CLASS_TECHNIQUES[classId] || []);
+  const out = ids.map(id=>SKILLS[id]).filter(sk=>sk && (!sk.classes || sk.classes.indexOf(classId) >= 0));
+  out.push(SKILLS.block);
+  return out;
 }
 
 /* ---- starting a match -------------------------------------------------- */
@@ -14261,7 +14455,9 @@ function pvpStart(){
     const st = pvpStats(p.classId);
     Object.assign(p, {hp:st.maxHp, maxHp:st.maxHp, atk:st.atk, def:st.def, spd:st.spd,
       energy:1, energyMax:st.energyMax, critChance:st.critChance,
-      guard:0, down:false, firstStrike:true, asked:0, right:0, dealt:0, taken:0});
+      guard:0, down:false, firstStrike:true, asked:0, right:0, dealt:0, taken:0,
+      silenced:0, hidden:0, ward:0, taunt:0, healCut:0, healCutTurns:0,
+      bleed:0, bleedTurns:0, buffs:[]});
   });
   pv.turn = 0; pv.round = 1; pv.winner = null; pv.log = []; pv.question = null; pv.pending = null;
   pvpSay('The two sides face each other. ' + (pvpCurrent() ? pvpCurrent().name + ' is quickest, and goes first.' : ''));
@@ -14352,27 +14548,73 @@ function pvpPickSkillLocal(skillId){
   if(!me || !skill || pv.stage !== 'skill') return;
   if((me.energy || 0) < (skill.cost || 0)) return;
   if(skill.noDamage){
-    /* the guard, and anything else that only ever touches you */
-    me.energy -= (skill.cost || 0);
-    if(skill.shieldPct) me.guard = Math.max(me.guard || 0, skill.shieldPct);
-    if(skill.healPct){
-      const was = me.hp;
-      me.hp = clamp(me.hp + Math.round(me.maxHp * skill.healPct), 0, me.maxHp);
-      pvpSay(me.name + ' recovers ' + (me.hp - was) + '.');
+    /* A blessing you can hand to somebody else is a question, not an action:
+       it goes to the attack bar the same way a strike does, except the names
+       on it are your own side. */
+    if(skill.allyTarget && pvpAlliesPickable(me).length > 1){
+      pv.pending = skillId;
+      pv.allyPick = true;
+      pv.stage = 'target';
+      netPushState();
+      render();
+      return;
     }
-    pvpSay(me.name + ' raises a guard — the next hit lands for '
-           + Math.round((1 - (me.guard||0)) * 100) + '%.');
+    me.energy -= (skill.cost || 0);
+    pvpApplySupport(me, me, skill);
     pv.note = '';
     pvpEndTurn();
     return;
   }
   pv.pending = skillId;
+  pv.allyPick = false;
   pv.stage = 'target';
   netPushState();
   render();
 }
+/* A skill that helps rather than hurts, applied to whoever it was aimed at -
+   which may well be the person casting it. */
+function pvpApplySupport(caster, who, skill){
+  const said = [];
+  if(skill.shieldPct){
+    who.guard = Math.max(who.guard || 0, skill.shieldPct);
+    said.push('a guard at ' + Math.round((1 - who.guard) * 100) + '%');
+  }
+  if(skill.cleanse){
+    const had = ((who.bleedTurns||0) > 0 ? 1 : 0) + ((who.healCutTurns||0) > 0 ? 1 : 0);
+    who.bleed = 0; who.bleedTurns = 0; who.healCut = 0; who.healCutTurns = 0;
+    who.silenced = 0;
+    said.push(had ? (had + ' wound' + (had===1?'':'s') + ' closed') : 'nothing left to close');
+  }
+  if(skill.wardTurns){
+    who.ward = Math.max(who.ward || 0, skill.wardTurns + 1);
+    said.push('warded');
+  }
+  if(skill.untargetable){
+    who.hidden = Math.max(who.hidden || 0, skill.untargetable + 1);
+    said.push('gone into the smoke');
+  }
+  if(skill.taunt){
+    who.taunt = Math.max(who.taunt || 0, skill.taunt + 1);
+    said.push('daring anybody to try it');
+  }
+  if(skill.healPct){
+    /* and this is where Rend earns its place: it halves exactly this */
+    const amount = Math.round(who.maxHp * skill.healPct * (1 - (who.healCut || 0)));
+    const was = who.hp;
+    who.hp = clamp(who.hp + amount, 0, who.maxHp);
+    said.push('+' + (who.hp - was) + ' HP' + ((who.healCut||0) > 0 ? ' (cut by the bleeding)' : ''));
+  }
+  if(skill.buffSelf){
+    who.buffs = (who.buffs || []).filter(b=>b.name !== skill.buffSelf.name)
+      .concat([Object.assign({}, skill.buffSelf, {turns: skill.buffSelf.turns})]);
+    said.push(skill.buffSelf.name);
+  }
+  pvpSay(caster.name + ' — ' + skill.name + (who === caster ? '' : ' on ' + who.name)
+         + (said.length ? ' — ' + said.join(', ') : '') + '.');
+}
 function pvpDamage(me, foe, skill){
   let mult = skill.mult || 1;
+  (me.buffs || []).forEach(b=>{ if(b.stat === 'atkPct' && b.amount) mult *= 1 + b.amount; });
   /* Bulwark hits harder the worse it is going; Rage is the same idea. */
   const passive = CLASSES[me.classId].passive;
   const missing = clamp(1 - (me.hp / Math.max(1, me.maxHp)), 0, 1);
@@ -14407,6 +14649,17 @@ async function pvpStrikeLocal(targetId){
   const foe = pv.players.find(p=>p.id === targetId);
   const skill = SKILLS[pv.pending];
   if(!me || !foe || !skill || pv.stage !== 'target' || pv.resolving) return;
+  /* a blessing aimed at your own side never becomes a strike */
+  if(pv.allyPick){
+    if(foe.team !== me.team) return;
+    me.energy -= (skill.cost || 0);
+    pvpApplySupport(me, foe, skill);
+    pv.allyPick = false; pv.pending = null; pv.note = '';
+    pvpEndTurn();
+    return;
+  }
+  /* and you cannot reach through smoke or past a taunt */
+  if(pvpTargetsFor(me).indexOf(foe) < 0) return;
   pv.resolving = true;
   me.energy -= (skill.cost || 0);
   /* the attack itself: the same wind-up, the same lunge, the same spell the
@@ -14427,9 +14680,18 @@ async function pvpStrikeLocal(targetId){
   }
   me.dealt += total; foe.taken += total;
   if(skill.lifestealBonus){
-    const back = Math.max(1, Math.round(total * skill.lifestealBonus / 100));
+    const back = Math.max(1, Math.round(total * skill.lifestealBonus / 100 * (1 - (me.healCut||0))));
     me.hp = clamp(me.hp + back, 0, me.maxHp);
   }
+  /* what the blow leaves behind - unless a ward is holding */
+  const warded = (foe.ward || 0) > 0;
+  if(skill.silence && !warded) foe.silenced = Math.max(foe.silenced||0, skill.silence + 1);
+  if(skill.healCut && !warded){ foe.healCut = skill.healCut; foe.healCutTurns = skill.healCutTurns || 3; }
+  if(skill.dot && !warded){
+    foe.bleed = Math.max(1, Math.round(foe.maxHp * skill.dot.pct * 0.5));
+    foe.bleedTurns = skill.dot.turns;
+  }
+  if(warded && (skill.silence || skill.healCut || skill.dot)) pvpSay(foe.name + ' is warded — nothing takes hold.');
   pv.hit = {id: foe.id, dmg: total, crit: anyCrit};
   pvpSay(me.name + ' — ' + skill.name + ' — ' + total + ' on ' + foe.name
          + (anyCrit ? ' (CRIT)' : '') + (guarded ? ' (guarded)' : '')
@@ -14468,16 +14730,64 @@ async function pvpStrikeLocal(targetId){
   pvpEndTurn();
 }
 /* ---- the handover ------------------------------------------------------ */
+/* One tick of everything counting down on one person, at the top of their
+   own turn - which is the only moment that is fair. A clock that ran on
+   everybody's turn would last six times as long in a three-a-side as it does
+   in a duel, and the same skill would mean two different things. */
+function pvpTick(p){
+  if(!p) return;
+  ['ward','hidden','taunt'].forEach(k=>{ if(p[k] > 0) p[k]--; });
+  if(p.healCutTurns > 0 && --p.healCutTurns <= 0) p.healCut = 0;
+  p.buffs = (p.buffs || []).map(b=>Object.assign({}, b, {turns:b.turns-1})).filter(b=>b.turns > 0);
+  if(p.bleedTurns > 0){
+    p.bleedTurns--;
+    const dmg = Math.max(1, p.bleed || 1);
+    p.hp = clamp(p.hp - dmg, 0, p.maxHp);
+    pvpSay(p.name + ' bleeds for ' + dmg + '.');
+    if(p.hp <= 0){ p.down = true; pvpSay(p.name + ' bleeds out.'); }
+    if(p.bleedTurns <= 0) p.bleed = 0;
+  }
+}
+function pvpAdvance(){
+  const pv = App.pvp;
+  pv.turn++;
+  if(pv.turn >= pv.order.length){ pv.turn = 0; pv.round++; }
+}
 function pvpEndTurn(){
   const pv = App.pvp;
   pv.question = null;
+  pv.allyPick = false;
   let guard = 0;
-  do {
-    pv.turn++;
-    if(pv.turn >= pv.order.length){ pv.turn = 0; pv.round++; }
-    guard++;
-  } while(guard < 40 && (() => { const n = pvpCurrent(); return !n || n.down; })());
-  const next = pvpCurrent();
+  do { pvpAdvance(); guard++; }
+  while(guard < 40 && (() => { const n = pvpCurrent(); return !n || n.down; })());
+  let next = pvpCurrent();
+  if(next) pvpTick(next);
+  /* bleeding out on your own turn ends a match the same as anything else */
+  let gone = [0,1].filter(t=>pvpAlive(t).length === 0);
+  if(gone.length){
+    pv.winner = gone.indexOf(0) >= 0 ? 1 : 0;
+    pv.stage = 'over';
+    netPushState(); render();
+    return;
+  }
+  /* Silenced: the turn arrives and nothing happens in it. */
+  let skipped = 0;
+  while(next && ((next.silenced||0) > 0 || next.down) && skipped < 14){
+    if(!next.down){ next.silenced--; pvpSay(next.name + ' cannot do a thing this turn.'); }
+    skipped++;
+    do { pvpAdvance(); } while(pvpCurrent() && pvpCurrent().down && ++skipped < 14);
+    next = pvpCurrent();
+    if(next && !next.down){
+      pvpTick(next);
+      gone = [0,1].filter(t=>pvpAlive(t).length === 0);
+      if(gone.length){
+        pv.winner = gone.indexOf(0) >= 0 ? 1 : 0;
+        pv.stage = 'over';
+        netPushState(); render();
+        return;
+      }
+    }
+  }
   if(next) next.energy = clamp(next.energy + 1, 0, next.energyMax);
   pv.stage = 'pass';
   pv.waiting = false;
@@ -15112,7 +15422,10 @@ function pvpFighterNode(p, slot){
     <div class="namebar t${p.team}">${escapeHtml(p.name)}</div>
     <div class="hpbar-wrap"><div class="hpbar-outer"><div class="hpbar-bg"></div><div class="hpbar-fill"></div><div class="hpbar-num"></div></div></div>
     <div class="sprite-box">${p.team===1?'<div class="sprite-flip mirror"></div>':'<div class="sprite-flip"></div>'}</div>
-    <div class="energy-row pc-energy">${'⚡'.repeat(Math.max(0, p.energy))}${p.guard?' \U0001F6E1':''}</div>
+    <div class="energy-row pc-energy">${'⚡'.repeat(Math.max(0, p.energy))}${
+      p.guard?' 🛡':''}${(p.hidden||0)>0?' 💨':''}${(p.taunt||0)>0?' ❗':''}${
+      (p.ward||0)>0?' ✨':''}${(p.silenced||0)>0?' 🔇':''}${
+      (p.bleedTurns||0)>0?' 🩸':''}${(p.buffs||[]).length?' ↑':''}</div>
   </div>`);
   setArt(node.querySelector('.sprite-flip'), classArt(p.classId, p.down ? 'hurt' : 'idle'));
   updateHpBar(node.querySelector('.hpbar-fill'), node.querySelector('.hpbar-num'), p.hp, p.maxHp);
@@ -15165,14 +15478,15 @@ function pvpArena(){
 function pvpAttackBar(me){
   const sk = SKILLS[App.pvp.pending];
   const bar = el(`<div class="attack-bar">
-    <span class="ab-label">${escapeHtml(sk ? sk.name : 'Strike')} — who?</span>
+    <span class="ab-label">${escapeHtml(sk ? sk.name : 'Strike')} — ${App.pvp.allyPick ? 'on whom?' : 'who?'}</span>
     <div class="ab-row"></div>
   </div>`);
   const row = bar.querySelector('.ab-row');
-  pvpEnemiesOf(me).forEach(foe=>{
+  const list = App.pvp.allyPick ? pvpAlliesPickable(me) : pvpTargetsFor(me);
+  list.forEach(foe=>{
     const pct = Math.round(clamp(foe.hp / Math.max(1, foe.maxHp), 0, 1) * 100);
-    const b = el(`<button class="ab-target t${foe.team}">
-      <span class="abt-name">${escapeHtml(foe.name)}</span>
+    const b = el(`<button class="ab-target t${foe.team}${App.pvp.allyPick?' ally':''}">
+      <span class="abt-name">${escapeHtml(foe.name)}${(foe.hidden||0)>0?' 💨':''}${(foe.taunt||0)>0?' 🛡':''}</span>
       <span class="abt-hp"><span class="abt-fill" style="width:${pct}%"></span></span>
       <span class="abt-num">${foe.hp} / ${foe.maxHp} · ${escapeHtml(CLASSES[foe.classId].name)}</span>
     </button>`);
@@ -15819,6 +16133,8 @@ function startGauntletStage(stage){
   App.run.playerBleed = {turnsLeft:0, perTurn:0}; App.run.monsterBuffs = [];
   App.run.frozen = false; App.run.bossTurn = 0; App.run.shieldPct = 0; App.run.nullifyNextWrong = false;
   App.run.examMult = 0; App.examResult = null;
+  App.run.ward = 0; App.run.untargetable = 0; App.run.taunt = 0;
+  App.run.healCut = 0; App.run.healCutTurns = 0;
   App.dungeonView = 'battle';
   saveRun();
   startNewTurn();
@@ -16144,9 +16460,62 @@ function resetSkillTree(){
   let refund = 0;
   Object.keys(prog.allocated).forEach(id=>{ const n=findSkillNode(App.character.classId,id); if(n) refund+=n.cost; });
   prog.allocated = {}; prog.evolution = null; prog.skillPoints += refund;
+  /* the bar is re-checked against what is left, or you keep fighting with a
+     technique you just sold back */
+  prog.bar = (prog.bar||[]).filter(id=>eligibleSkills(App.character.classId).indexOf(id) >= 0);
   saveCharacter(); render();
 }
 function selectClass(classId){ App.character.classId = classId; saveCharacter(); render(); }
+
+/* ---- the bar you actually fight with -----------------------------------
+   Everything a class can carry is not everything it carries. Four slots, and
+   a skill may only sit in one of them if this class is allowed it at all -
+   a rogue cannot equip Taunt, and no amount of clicking will put it there,
+   because the check is on the skill's own `classes` list rather than on what
+   the button happened to be next to. Block is deliberately not a slot: it is
+   always on the bar and it never costs you a choice. */
+function renderSkillBar(){
+  const ch = App.character;
+  const able = eligibleSkills(ch.classId);
+  const bar = skillBar();
+  const panel = el(`<div class="px-panel"><div class="dg-h2">Skill Bar — ${bar.length} of ${SKILL_SLOTS} slots</div>
+    <p class="muted">Pick the four you take down with you. <b>Block</b> is always with you on top of these and never takes a slot. Techniques you have not taken in the tree are not on this list, and a skill another class owns can never be on it.</p>
+    <div class="bar-slots"></div>
+    <div class="dg-h2" style="margin-top:18px;">Everything ${escapeHtml(CLASSES[ch.classId].name)} can carry</div>
+    <div class="bar-pool"></div></div>`);
+  const slots = panel.querySelector('.bar-slots');
+  for(let i=0;i<SKILL_SLOTS;i++){
+    const sid = bar[i];
+    const sk = sid ? SKILLS[sid] : null;
+    const cell = el(`<div class="bar-slot${sk?'':' empty'}">${sk
+      ? `<span class="bs-name">${escapeHtml(sk.name)}</span><span class="bs-cost">${sk.cost===0?'free':(sk.cost+' ⚡')}</span>`
+      : '<span class="bs-name">empty</span>'}</div>`);
+    if(sk){
+      const x = el(`<button class="bs-drop" title="Take it off">×</button>`);
+      x.addEventListener('click', ()=>{ setSkillBar(bar.filter(id=>id!==sid)); render(); });
+      cell.appendChild(x);
+    }
+    slots.appendChild(cell);
+  }
+  const pool = panel.querySelector('.bar-pool');
+  able.forEach(sid=>{
+    const sk = SKILLS[sid];
+    const on = bar.indexOf(sid) >= 0;
+    const full = bar.length >= SKILL_SLOTS;
+    const tag = sk.ultimate ? 'ULTIMATE' : (sk.guard ? 'GUARD'
+              : ((CLASS_TECHNIQUES[ch.classId]||[]).indexOf(sid) >= 0 ? 'TECHNIQUE'
+              : (sk.cost === 0 ? 'BASIC' : (sk.monster ? 'LEARNED' : 'SKILL'))));
+    const b = el(`<button class="node-btn pool-skill${on?' allocated':''}" ${(!on && full)?'disabled':''}>
+      <span class="nname">${escapeHtml(sk.name)}<span class="stag">${tag}</span></span>
+      <span class="ndesc">${escapeHtml(sk.desc||'')}</span>
+      <span class="ncost">${sk.cost===0?'free':(sk.cost+' energy')}${on?' · on the bar':(full?' · bar is full':' · tap to equip')}</span></button>`);
+    if(on) b.addEventListener('click', ()=>{ setSkillBar(bar.filter(id=>id!==sid)); render(); });
+    else if(!full) b.addEventListener('click', ()=>{ setSkillBar(bar.concat([sid])); render(); });
+    pool.appendChild(b);
+  });
+  if(!able.length) pool.appendChild(el(`<p class="muted">Nothing yet — spend a skill point in the tree.</p>`));
+  return panel;
+}
 function renderCharactersScreen(){
   const ch = App.character;
   const outer = el('<div class="dg-wrap"></div>');
@@ -16169,8 +16538,12 @@ function renderCharactersScreen(){
 
   const prog = classProg();
   const tree = el(`<div class="px-panel"><div class="dg-h2">${CLASSES[ch.classId].name} Skill Tree — ${prog.skillPoints} skill point(s) available</div></div>`);
-  [1,2,3].forEach(tier=>{
-    const row = el(`<div class="tree-tier"><div class="tt-label">TIER ${tier}${tier===3?' — EVOLUTION (pick one)':''}</div><div class="tree-row"></div></div>`);
+  [1,2,3,4].forEach(tier=>{
+    const label = tier===4
+      ? 'TECHNIQUES — optional. They feed nothing, so taking them never costs you an evolution'
+      : ('TIER ' + tier + (tier===3 ? ' — EVOLUTION (pick one)' : ''));
+    if(tier===4 && !CLASSES[ch.classId].tree.some(n2=>n2.tier===4)) return;
+    const row = el(`<div class="tree-tier${tier===4?' tech-tier':''}"><div class="tt-label">${label}</div><div class="tree-row"></div></div>`);
     const rowEl = row.querySelector('.tree-row');
     CLASSES[ch.classId].tree.filter(n=>n.tier===tier).forEach(node=>{
       const allocated = !!prog.allocated[node.id];
@@ -16197,6 +16570,7 @@ function renderCharactersScreen(){
   resetBtn.addEventListener('click', resetSkillTree);
   tree.appendChild(resetBtn);
   outer.appendChild(tree);
+  outer.appendChild(renderSkillBar());
   return outer;
 }
 
