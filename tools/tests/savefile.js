@@ -67,6 +67,13 @@ const {chromium}=require('playwright');
     refuse('{"hello":1}', 'a random object');
     refuse(JSON.stringify({format:'study-dungeon-save', version:99, data:{subjects:[]}}), 'a newer version');
     refuse(JSON.stringify({format:DECK_FORMAT, cards:[{q:'a',a:'b'}]}), 'a deck file');
+    /* the game was renamed; a save written under the old name still loads,
+       and a deck written under it still loads too - the deck format string
+       was deliberately NOT renamed, because every deck anybody has carries it */
+    const oldNamed = JSON.parse(text); oldNamed.format = 'study-dungeon-save';
+    try{ parseSaveFile(JSON.stringify(oldNamed)); out.push(['old-name save','still accepted']); }
+    catch(e){ bad.push('a save from before the rename was refused: ' + e.message); }
+    if(DECK_FORMAT !== 'study-dungeon-deck') bad.push('the deck format was renamed, which breaks every exported deck');
     refuse(JSON.stringify({format:'study-dungeon-save', version:1, data:{}}), 'an empty save');
     return {out, bad};
   });

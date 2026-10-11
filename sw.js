@@ -1,4 +1,4 @@
-/* Study Dungeon's service worker.
+/* Dungeon Studies' service worker.
  *
  * The game was always one file you could open from disk, and installing it as
  * an app must not cost that. So this caches the shell and nothing clever: the
@@ -8,7 +8,7 @@
  * Bump CACHE_V on release. The old cache is deleted on activate, the new
  * worker takes over immediately, and any open tab is told to reload once.
  */
-const CACHE_V = 'study-dungeon-v1';
+const CACHE_V = 'dungeon-studies-v1';
 const SHELL = [
   './',
   './index.html',

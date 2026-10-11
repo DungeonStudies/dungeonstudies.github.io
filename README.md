@@ -1,4 +1,4 @@
-# Study Dungeon — Tower of Trials
+# Dungeon Studies — Tower of Trials
 
 A single self-contained `index.html` — a retro pixel-art (16-bit style) RPG
 dungeon crawler where every combat turn is a question pulled from **your own

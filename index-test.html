@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>⚑ TEST BUILD — Study Dungeon — Tower of Trials</title>
+<title>⚑ TEST BUILD — Dungeon Studies — Tower of Trials</title>
 <!-- Installable as an app when this is served over http(s). Opened straight
      off disk none of it applies and the game is exactly what it was: one file. -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -13,7 +13,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Study Dungeon">
+<meta name="apple-mobile-web-app-title" content="Dungeon Studies">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 /* ===================================================================
-   STUDY DUNGEON — design system
+   DUNGEON STUDIES — design system
    Modern dark-fantasy UI: glass stone panels, torchlit cavern backdrop,
    gold/violet accents, soft depth instead of hard pixel borders.
    =================================================================== */
@@ -4735,7 +4735,13 @@ function activeSubject(){ return App.subjects.find(s=>s.id===App.activeSubjectId
    in a shared folder. The file says so where the key would have been, so
    nobody wonders why they have to type it again.
    ================================================================== */
-const SAVE_FORMAT = 'study-dungeon-save';
+/* The game is called Dungeon Studies now. The DECK format string is not
+   renamed with it: every deck file anybody has ever exported carries the old
+   one, and a rename would reject all of them to no purpose. The save format
+   is renamed, because it is a day old - but the old string is still accepted
+   on the way in, for the handful of files that exist. */
+const SAVE_FORMAT = 'dungeon-studies-save';
+const SAVE_FORMAT_OLD = 'study-dungeon-save';
 const SAVE_FILE_VERSION = 1;   /* the FILE's schema. SAVE_VERSION above is the
                                   character record's, and they are not the
                                   same number or the same thing. */
@@ -4775,7 +4781,7 @@ function summariseSave(data){
 function saveFileName(){
   const d = new Date();
   const p = n => String(n).padStart(2,'0');
-  return 'study-dungeon-' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '.json';
+  return 'dungeon-studies-' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '.json';
 }
 async function exportSave(){
   const file = await buildSaveFile();
@@ -4788,10 +4794,10 @@ function parseSaveFile(text){
   let d = null;
   try{ d = JSON.parse(text); }catch(e){ throw new Error('that is not a JSON file'); }
   if(!d || typeof d !== 'object') throw new Error('that file is not a save');
-  if(d.format !== SAVE_FORMAT){
+  if(d.format !== SAVE_FORMAT && d.format !== SAVE_FORMAT_OLD){
     if(Array.isArray(d.cards) || d.format === DECK_FORMAT)
       throw new Error('that is a DECK file, not a save — import it from the Deck file panel in Study');
-    throw new Error('that file is not a Study Dungeon save');
+    throw new Error('that file is not a Dungeon Studies save');
   }
   if(!(Number(d.version) <= SAVE_FILE_VERSION)) throw new Error('that save was made by a newer version of the game');
   const data = d.data;
@@ -7919,7 +7925,7 @@ function inTheDungeon(){
         'merchant','hurt'].indexOf(App.dungeonView) >= 0;
 }
 function renderNav(){
-  const nav = el(`<div class="shell-nav"><span class="brand">⚔ STUDY DUNGEON</span></div>`);
+  const nav = el(`<div class="shell-nav"><span class="brand">⚔ DUNGEON STUDIES</span></div>`);
   /* Mid-match there is nowhere else to be either, so Versus keeps the bar to
      itself the way a live floor does. */
   const tabs = inAMatch() ? [['pvp','Versus']]
@@ -10152,7 +10158,7 @@ const Ads = (function(){
       let left = Math.ceil(AD_HOUSE_MS/1000), settled = false;
       const back = el(`<div class="ad-back"><div class="ad-card ad-break">
         <div class="ad-flag">HOUSE BREAK — no ad network is configured</div>
-        <div class="ad-mark">STUDY DUNGEON</div>
+        <div class="ad-mark">DUNGEON STUDIES</div>
         <div class="ad-sub">${reward ? 'Your reward unlocks when this finishes.' : 'Back to the hub in a moment.'}</div>
         <div class="ad-count"><span>${left}</span></div>
         <button class="ad-x" title="Close">✕</button>
@@ -14061,7 +14067,7 @@ function renderDeath(){
   return c;
 }
 function renderVictory(){
-  const c = el(`<div class="overlay-center"><div class="dg-h1" style="color:var(--dk-gold);">MALAKOR FALLS!</div><p style="max-width:520px;">You have conquered all 100 floors of the Study Dungeon${App.character.ngPlus?' (New Game +'+App.character.ngPlus+')':''}! Keep farming boss floors for artifacts, or descend again on a harder New Game+.</p></div>`);
+  const c = el(`<div class="overlay-center"><div class="dg-h1" style="color:var(--dk-gold);">MALAKOR FALLS!</div><p style="max-width:520px;">You have conquered all 100 floors of the Tower${App.character.ngPlus?' (New Game +'+App.character.ngPlus+')':''}! Keep farming boss floors for artifacts, or descend again on a harder New Game+.</p></div>`);
   const btn = el(`<button class="px-btn gold">Back to Hub</button>`); btn.addEventListener('click', goToHub);
   const ng = el(`<button class="px-btn red" style="margin-left:10px;">Start New Game+ (${App.character.ngPlus+1})</button>`); ng.addEventListener('click', newGamePlus);
   c.appendChild(btn); c.appendChild(ng);
