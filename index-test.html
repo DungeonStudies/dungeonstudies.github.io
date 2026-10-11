@@ -751,6 +751,51 @@ body::after{ /* rock strata, chisel speckle, vignette */
   color:rgba(255,255,255,.74);border-top:1px solid rgba(255,255,255,.12);padding-top:6px;}
 .artifact-inline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 
+/* ===================== TURN YOUR PHONE =====================
+   Three conditions, all of which have to be true: the screen is narrow, it
+   is taller than it is wide, and the pointer is COARSE - which is how a
+   browser says "this is a finger, not a mouse". That last one is what keeps
+   it off a desktop whose window happens to be narrow, and it is a far better
+   test than sniffing the user agent, which lies.
+
+   It is CSS rather than JavaScript on purpose: a media query re-evaluates
+   itself the moment the phone turns, with no event to miss and no state to
+   get out of step. JavaScript's only job here is the way out.
+
+   And there IS a way out, because a phone with rotation locked cannot rotate
+   and a game that will not let you past that screen is a game you delete. */
+#rotate-gate{display:none;}
+@media (max-width:900px) and (orientation:portrait) and (pointer:coarse){
+  html:not(.allow-portrait) #rotate-gate{
+    display:flex;position:fixed;inset:0;z-index:99999;
+    align-items:center;justify-content:center;padding:28px;
+    background:radial-gradient(70% 50% at 50% 40%,#1a1430,#0a0814 75%);
+  }
+  html:not(.allow-portrait) #root{display:none;}
+  html:not(.allow-portrait) .cave-fx{opacity:.4;}
+}
+.rg-inner{text-align:center;max-width:320px;}
+.rg-phone{width:66px;height:110px;margin:0 auto 26px;border-radius:11px;
+  border:3px solid rgba(255,217,120,.85);position:relative;
+  animation:rgTurn 2.6s ease-in-out infinite;transform-origin:center;}
+.rg-screen{position:absolute;inset:7px 5px;border-radius:4px;
+  background:linear-gradient(160deg,rgba(255,217,120,.3),rgba(255,217,120,.07));}
+.rg-phone::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);
+  width:18px;height:3px;border-radius:2px;background:rgba(255,217,120,.6);}
+@keyframes rgTurn{
+  0%,30%{transform:rotate(0deg);}
+  55%,85%{transform:rotate(-90deg);}
+  100%{transform:rotate(0deg);}
+}
+.rg-title{font-family:var(--ui);font-weight:800;font-size:21px;color:#ffd978;margin-bottom:10px;}
+.rg-text{font-size:14px;line-height:1.6;color:rgba(255,255,255,.72);margin-bottom:26px;}
+.rg-anyway{font-family:var(--ui);font-size:12.5px;padding:9px 16px;border-radius:9px;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.55);}
+.rg-anyway:hover{color:rgba(255,255,255,.85);}
+
+
+
 /* ===================== LOCAL VERSUS =====================
    Two sides facing each other with a VS between them, which is the only
    layout this has ever needed. It has to work on a phone held by six people
@@ -783,6 +828,40 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .px-btn.big{font-size:16px;padding:14px 26px;}
 
 .pvptabs button{font-size:14px;}
+/* the class picker */
+.cp-back{position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(6,4,12,.82);backdrop-filter:blur(6px);}
+.cp-panel{width:100%;max-width:980px;max-height:88vh;overflow-y:auto;padding:20px;border-radius:16px;
+  background:linear-gradient(158deg,rgba(38,34,56,.97),rgba(16,14,28,.98));
+  border:1px solid var(--hairline);box-shadow:0 40px 80px -30px #000;}
+.cp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.cp-title{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.08em;
+  text-transform:uppercase;color:#ffd978;}
+.cp-x{width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:19px;font-weight:800;
+  background:rgba(255,255,255,.07);border:1px solid var(--hairline);color:rgba(255,255,255,.65);}
+.cp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;}
+.cp-card{display:grid;gap:5px;padding:13px;border-radius:13px;text-align:left;cursor:pointer;
+  background:linear-gradient(158deg,rgba(44,38,62,.7),rgba(20,17,32,.8));
+  border:1px solid var(--hairline);transition:border-color .16s,transform .16s;}
+.cp-card:hover{transform:translateY(-2px);border-color:rgba(255,217,120,.6);}
+.cp-card.on{border-color:#ffd978;box-shadow:0 0 0 1px rgba(255,217,120,.4);}
+.cp-art{width:62px;height:62px;margin:0 auto 2px;}
+.cp-art svg{width:100%;height:100%;display:block;image-rendering:pixelated;}
+.cp-name{font-family:var(--ui);font-weight:800;font-size:15px;color:#fff;text-align:center;}
+.cp-now{font-size:9px;letter-spacing:.1em;color:#ffd978;margin-left:5px;}
+.cp-stats{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.72);text-align:center;}
+.cp-role{font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.62);}
+.cp-passive{font-size:11px;line-height:1.5;color:rgba(143,240,187,.75);}
+.cp-weak{font-size:11px;line-height:1.5;color:rgba(255,163,181,.8);}
+.cp-kit{font-size:10px;line-height:1.5;color:rgba(255,255,255,.4);border-top:1px solid rgba(255,255,255,.08);
+  padding-top:5px;margin-top:2px;}
+.pr-pick{padding:7px 11px;border-radius:9px;font-family:var(--ui);font-weight:700;font-size:13px;
+  background:rgba(255,217,120,.12);border:1px solid rgba(255,217,120,.4);color:#ffd978;cursor:pointer;
+  width:100%;text-align:left;}
+.pr-pick:hover{background:rgba(255,217,120,.2);}
+.pr-static.secret{color:rgba(255,255,255,.35);font-style:italic;}
+.pr-art.pr-unknown{border-radius:8px;background:repeating-linear-gradient(45deg,
+  rgba(255,255,255,.05) 0 5px,rgba(255,255,255,.02) 5px 10px);}
 /* the technique branch, and the bar you take down with you */
 .tree-tier.tech-tier .tt-label{color:rgba(143,240,187,.85);}
 .tree-tier.tech-tier .node-btn{border-color:rgba(63,207,142,.35);}
@@ -2476,10 +2555,125 @@ body::after{ /* rock strata, chisel speckle, vignette */
 @media (prefers-reduced-motion:reduce){
   .fx,.ult-charge,.ult-title,.ult-flashout{animation-duration:.01s!important;}
 }
+
+/* Everything below is an OVERRIDE and must therefore come last: a media
+   query does not beat a later rule of the same specificity, which is how the
+   versus arena carried on being 470px tall on a phone. */
+/* ===================== A PHONE ON ITS SIDE =====================
+   A landscape phone is about 390 pixels tall. The fight was laid out for a
+   desktop and came to 1070 - so you scrolled 680 pixels to see a fight that
+   is supposed to be one picture, and by the time the question was on screen
+   the people fighting were not.
+
+   The query is on HEIGHT, not width. Width tells you nothing useful here: a
+   landscape phone is WIDE and tiny. What makes this layout impossible is
+   that it is short, so that is what is asked.
+
+   The rule throughout is that nothing is hidden - everything the desktop
+   shows is still there, just sized for the room available. A fight you have
+   to scroll is not a fight you can read. */
+@media (max-height:560px) and (orientation:landscape){
+  /* the chrome: 172px of nav and header becomes about 74 */
+  .shell-nav{padding:6px 12px;gap:7px;}
+  .brand{font-size:15px;}
+  .navtab{padding:5px 12px;font-size:12px;}
+  .qstat{font-size:10px;padding:3px 9px;}
+  .quickstats{gap:5px;}
+  .dg-wrap{padding:8px 10px 14px;min-height:0;}
+  .px-panel{padding:10px 12px;margin:0 0 8px;border-radius:12px;}
+  .battle-head{padding:6px 10px;}
+  .battle-head .dg-h2{font-size:12px;}
+  .buff-tag{font-size:9px;padding:2px 7px;}
+
+  /* the room: sized to what is left rather than a fixed 470 */
+  /* The room is sized so that the room AND the question fit together. A
+     fight you can see but cannot answer from is still a fight you scroll. */
+  .battle-scene{min-height:0;height:min(47vh,186px);margin-bottom:6px;}
+  .sprite-box{width:88px;height:88px;}
+  /* and they stand further apart, because at this size they were touching */
+  .combatant.player{left:4%;bottom:10%;}
+  .combatant.monster{left:66%;bottom:10%;}
+  .combatant.monster.boss,.combatant.monster.boss.smallboss{left:64%;bottom:11%;}
+  .combatant.monster.boss .sprite-box{transform:scale(1.35);margin-top:10px;}
+  .combatant.monster.boss.smallboss .sprite-box{transform:scale(1.1);margin-top:0;}
+  .combatant.monster.evolved .sprite-box{transform:scale(1.2);}
+  .namebar{font-size:9px;}
+  .hpbar-wrap{width:76px;}
+  .combatant::after{width:46px;height:9px;}
+  .energy-row .energy-seg{transform:scale(.8);}
+
+  /* the question, which is the thing you are actually here to read */
+  .qbody{padding:11px 13px;}
+  .qtag{font-size:10px;}
+  .qtext{font-size:14px;margin-bottom:7px;line-height:1.3;}
+  .mcq-opt{padding:8px 12px;font-size:13px;margin-bottom:6px;}
+  .diffbtns{gap:6px;grid-template-columns:repeat(3,1fr);}
+  .diffbtn{padding:7px 9px;}
+  .diffbtn .dstat{font-size:9.5px;}
+  .diffbtn .ddesc{display:none;}        /* the blurb, not the numbers */
+  .skillbtns{gap:7px;}
+  .skillbtn{padding:8px 10px;}
+  .skillbtn .sdesc{display:none;}
+  .px-btn{padding:8px 14px;font-size:13px;}
+  .feedback-msg{padding:8px 11px;font-size:13px;}
+  .exam-sheet{min-height:96px;}
+
+  /* versus is fought in the same room and shrinks with it */
+  .pvp-scene{min-height:0;height:min(47vh,186px);}
+  .pvp-strip{padding:1px 2px 5px;font-size:11px;}
+  .ab-target{padding:7px 10px;}
+  .abt-name{font-size:13px;}
+  .pvp-pass{padding:14px 12px;}
+  .pp-name{font-size:28px;}
+
+  /* the roster: five columns of controls on a 740px-wide screen */
+  .pvp-roster{gap:7px;}
+  .pvp-row{grid-template-columns:30px 1fr 1fr auto auto;gap:6px;padding:6px 8px;}
+  .pr-art{width:30px;height:30px;}
+  .pr-pick,.pr-team,.pr-drop{padding:5px 8px;font-size:11.5px;}
+  .pvp-row input,.pvp-row select{padding:5px 7px;font-size:12px;}
+
+  /* the class picker, which has to show five whole cards in 560px of height */
+  .cp-back{padding:8px;}
+  .cp-panel{max-height:95vh;padding:12px 14px;border-radius:13px;}
+  .cp-panel .pvp-intro{font-size:10.5px;line-height:1.4;margin:0 0 8px;}
+  .cp-head{margin-bottom:5px;}
+  .cp-title{font-size:16px;}
+  /* and the cards turn on their side - portrait on the left, everything
+     written beside it - because a tall narrow card at this height wraps the
+     weakness onto four lines and you can only see one and a half of them. */
+  .cp-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px;}
+  .cp-card{padding:9px 11px;column-gap:11px;row-gap:1px;
+    grid-template-columns:48px 1fr;align-items:start;}
+  .cp-art{grid-column:1;grid-row:1 / span 5;align-self:center;width:48px;height:48px;margin:0;}
+  .cp-name,.cp-stats,.cp-passive,.cp-weak,.cp-kit{grid-column:2;text-align:left;}
+  .cp-name{font-size:13.5px;}
+  .cp-stats{font-size:10px;}
+  .cp-role{display:none;}            /* the blurb; the stats beside it say it better */
+  .cp-passive,.cp-weak{font-size:10px;line-height:1.4;}
+  .cp-kit{font-size:9px;padding-top:3px;}
+
+  /* the versus write-up: the first line stays, the long reassurance goes */
+  .pvp-intro{font-size:11px;line-height:1.45;}
+  .pvp-blurb{display:none;}
+  .pvp-field{font-size:11px;}
+}
 </style>
 </head>
 <body>
 <div class="cave-fx" aria-hidden="true"></div>
+<!-- Shown by CSS alone on a small touch screen held upright. No JS decides
+     this, so it appears and disappears the instant the phone turns rather
+     than waiting on an event to fire. -->
+<div id="rotate-gate" role="dialog" aria-live="polite">
+  <div class="rg-inner">
+    <div class="rg-phone" aria-hidden="true"><span class="rg-screen"></span></div>
+    <div class="rg-title">Turn your phone sideways</div>
+    <div class="rg-text">The fight happens in a wide room, and you need to see
+      who is standing in it. Landscape it is.</div>
+    <button class="rg-anyway" type="button">Play in portrait anyway</button>
+  </div>
+</div>
 <div id="root"></div>
 <script>
 /* ============================== STORAGE ============================== */
@@ -4672,6 +4866,7 @@ async function loadAll(){
   await loadExamMode();        /* before a question can be built */
   await loadFriends();         /* before the versus room can offer them */
   installClickSound();         /* and before anything can be pressed in silence */
+  installRotateGate();         /* and the phone is asked to turn before any of it */
 
   App.discovered = (await Storage.get('discovered', null)) || {};
   let profiles = await Storage.get('profiles', null);
@@ -7912,6 +8107,8 @@ function render(){
     roomStart(PVP_ARENA.region);          /* versus is fought in a room too */
     ambientStop();
   } else { ambientStop(); roomStop(); }
+  const picker = renderClassPicker();
+  if(picker) root.appendChild(picker);
   maybeStartTutorial();
   if(TUT.on) requestAnimationFrame(()=>paintTutorial());   /* it measures a live page */
 }
@@ -8465,6 +8662,10 @@ function renderHelpNumbers(){
 
     <h4>Local Versus</h4>
     <p>${PVP_MIN} to ${PVP_MAX} people on one device, any split you like. Everyone is built at level ${PVP_LEVEL} from their class alone — no gear, no skill tree, no potions, no artifacts, no hints, nothing to spend. A hit lands for ×${PVP_DMG} what it would underground, because six people taking turns is slower than one person descending and a match has to end. Versus never asks for a written answer, whatever exam mode is set to, and nothing that happens in it reaches your save.</p>
+
+    <h4>Online Versus</h4>
+    <p>Same rules as the local game, played from your own phones. One of you holds the room and reads out a code; everyone else types it in, and the two browsers talk straight to each other — there is no server in the middle and it costs nothing to run. The questions all come from the holder's notes, at the difficulty they set, so everybody is answering the same deck.</p>
+    <p class="muted"><b>Nobody can see what class anybody else picked.</b> Other seats read <i>? ready</i> until the fight starts, the holder's screen included — their own browser is the one running the match, so it would otherwise be a free look at the other side. The holder's copy is also the one that decides what landed: a doctored page can lie to itself all it likes, and the answer never travels until the question is over.</p>
 
     <h4>Infinity</h4>
     <p>No final boss and no bottom. Floor ${MAX_FLOOR} is the end of the first descent; after it the regions cycle, the bosses return with a new title, and the numbers keep climbing. Everywhere else still ends at ${MAX_FLOOR}.</p>
@@ -13122,6 +13323,24 @@ function installClickSound(){
   }, {passive:true, capture:true});
 }
 
+/* The rotate screen shows itself; JavaScript only ever lets somebody past
+   it. That choice is remembered, because a person who has rotation locked
+   should be asked exactly once, not on every launch. */
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && CLASS_PICK) closeClassPicker(); });
+function installRotateGate(){
+  const gate = document.getElementById('rotate-gate');
+  if(!gate) return;
+  try{
+    if(localStorage.getItem('sd_allowPortrait') === '1')
+      document.documentElement.classList.add('allow-portrait');
+  }catch(e){}
+  const btn = gate.querySelector('.rg-anyway');
+  if(btn) btn.addEventListener('click', ()=>{
+    document.documentElement.classList.add('allow-portrait');
+    try{ localStorage.setItem('sd_allowPortrait', '1'); }catch(e){}
+  });
+}
+
 /* ============================ THE MUSIC ============================
    Nobody speaks over the ending. There is just this under it.
 
@@ -15142,16 +15361,44 @@ function netToHost(msg){ netSend(NET.hostConn, msg); }
 function netToAll(msg){ Object.values(NET.conns).forEach(c=>netSend(c, msg)); }
 
 /* ---- the lobby, which only the host owns ------------------------------- */
+/* WHAT EVERYBODY ELSE IS ALLOWED TO KNOW.
+   Your class is your business until the fight starts. Hiding it only in the
+   UI would be theatre - the seat list goes down the wire, so anybody could
+   read it out of a console. So it is cut out of the copy that travels: every
+   seat but your own arrives with no classId at all, and `locked` instead,
+   which is the only thing the other side needs to know.
+
+   The host holds the real list, because the host has to build the fighters
+   out of it. Everyone sees everything the moment the match begins. */
+function netSeatsFor(code){
+  return NET.seats.map(seat=>{
+    if(seat.code === code) return Object.assign({}, seat);
+    const {classId, ...rest} = seat;
+    return Object.assign(rest, {locked: !!classId});
+  });
+}
 function netPushLobby(){
   if(!netIsHost()) return;
-  netToAll({t:'lobby', seats:NET.seats});
+  Object.keys(NET.conns).forEach(peerId=>{
+    const code = String(peerId||'').replace(NET_PREFIX, '');
+    netSend(NET.conns[peerId], {t:'lobby', seats:netSeatsFor(code)});
+  });
   render();
 }
+/* Who really sent this. A connection's peer id is registered with the
+   introduction service, and the service will not hand the same one to two
+   machines at once - so for everybody already in the room it is the one
+   thing in an incoming message that the sender did not write. Every
+   host-side handler below reads the sender from here and ignores whatever
+   code the body claims, because otherwise a doctored page could change
+   somebody else's class, move them to the other side, or take their turn
+   for them just by writing their code into the field. */
+function netSenderCode(conn){ return netCleanCode(String((conn && conn.peer) || '').replace(NET_PREFIX, '')); }
 function netHostOnData(conn, d){
   if(!d || !d.t) return;
   NET.lastSeen[conn.peer] = Date.now();
   if(d.t === 'join'){
-    const code = netCleanCode(d.code);
+    const code = netSenderCode(conn);
     if(!code || netSeat(code)) return;
     if(NET.seats.length >= PVP_MAX){ netSend(conn, {t:'full'}); return; }
     /* new arrivals land on whichever side is shorter */
@@ -15162,7 +15409,7 @@ function netHostOnData(conn, d){
     return;
   }
   if(d.t === 'seat'){                       /* a guest changed their class or side */
-    const seat = netSeat(netCleanCode(d.code));
+    const seat = netSeat(netSenderCode(conn));   /* their own seat, never another */
     if(!seat) return;
     if(d.classId && CLASSES[d.classId]) seat.classId = d.classId;
     if(d.name) seat.name = String(d.name).slice(0,14);
@@ -15170,7 +15417,7 @@ function netHostOnData(conn, d){
     netPushLobby();
     return;
   }
-  if(d.t === 'act'){ netHostApplyIntent(netCleanCode(d.code), d.act); return; }
+  if(d.t === 'act'){ netHostApplyIntent(netSenderCode(conn), d.act); return; }
   if(d.t === 'ping'){ netSend(conn, {t:'pong'}); return; }
 }
 function netGuestOnData(d){
@@ -15398,21 +15645,23 @@ function pvpRoomScreen(){
     outer.appendChild(codeCard);
 
     const who = el(`<div class="px-panel"><div class="dg-h2">In the room — ${NET.seats.length} of ${PVP_MAX}</div>
+      <p class="pvp-intro muted">Nobody sees what anybody else picked — not even whoever is holding the room. A seat that says <i>? ready</i> has chosen and is waiting. You find out what you are up against when the first blow lands.</p>
       <div class="pvp-roster"></div></div>`);
     const list = who.querySelector('.pvp-roster');
     NET.seats.forEach(seat=>{
       const mine = seat.code === netMe();
+      const hidden = hiddenClass(seat, mine);
       const row = el(`<div class="pvp-row t${seat.team}">
-        <span class="pr-art"></span>
+        <span class="pr-art${hidden?' pr-unknown':''}"></span>
         <span class="pr-name static">${escapeHtml(seat.name)}${seat.host?' <small>host</small>':''}${mine?' <small>you</small>':''}</span>
-        ${mine ? `<select class="pr-class">${pvpClassIds().map(cid=>
-            `<option value="${cid}"${cid===seat.classId?' selected':''}>${escapeHtml(CLASSES[cid].name)}</option>`).join('')}</select>`
-          : `<span class="pr-static">${escapeHtml(CLASSES[seat.classId].name)}</span>`}
+        ${mine ? `<button class="pr-pick">${escapeHtml(classNameOf(seat.classId))} \u25BE</button>`
+          : `<span class="pr-static${hidden?' secret':''}">${
+              hidden ? '? ready' : escapeHtml(classNameOf(seat.classId))}</span>`}
         <button class="pr-team"${(mine||netIsHost())?'':' disabled'}>${escapeHtml(PVP_TEAM_NAMES[seat.team])}</button>
       </div>`);
-      setArt(row.querySelector('.pr-art'), classArt(seat.classId));
-      const sel = row.querySelector('.pr-class');
-      if(sel) sel.addEventListener('change', e=>netSeatChange(seat.code, {classId:e.target.value}));
+      if(!hidden) setArt(row.querySelector('.pr-art'), classArt(seat.classId));
+      const pick = row.querySelector('.pr-pick');
+      if(pick) pick.addEventListener('click', ()=>openClassPicker(seat.classId, cid=>netSeatChange(seat.code, {classId:cid})));
       const tb = row.querySelector('.pr-team');
       if(mine || netIsHost()) tb.addEventListener('click', ()=>netSeatChange(seat.code, {team: seat.team ? 0 : 1}));
       list.appendChild(row);
@@ -15452,6 +15701,53 @@ function pvpRoomScreen(){
   }
   return outer;
 }
+/* ---- picking who you are ------------------------------------------------
+   A dropdown of five names tells you nothing about what you are choosing. The
+   Characters screen already shows the art, what the class is FOR and - just
+   as loudly - what it is bad at, and that is exactly what somebody picking a
+   fighter needs. So this is that, as an overlay, usable from either side of
+   the Versus bar. It closes on a pick, on Escape, and on a tap outside. */
+let CLASS_PICK = null;
+function openClassPicker(current, onPick){
+  CLASS_PICK = {current, onPick};
+  render();
+}
+function closeClassPicker(){ CLASS_PICK = null; render(); }
+function renderClassPicker(){
+  if(!CLASS_PICK) return null;
+  const {current, onPick} = CLASS_PICK;
+  const back = el(`<div class="cp-back"><div class="cp-panel" role="dialog">
+    <div class="cp-head"><span class="cp-title">Choose your fighter</span>
+      <button class="cp-x" title="Close">\u00d7</button></div>
+    <p class="pvp-intro muted" style="margin:0 0 14px;">Everyone is built at level ${PVP_LEVEL}, so this is the only real choice you make before the fight. What each one is bad at is written down there with what it is good at.</p>
+    <div class="cp-grid"></div></div></div>`);
+  const grid = back.querySelector('.cp-grid');
+  pvpClassIds().forEach(cid=>{
+    const c = CLASSES[cid], st = pvpStats(cid), weak = CLASS_WEAKNESS[cid];
+    const card = el(`<button class="cp-card${cid===current?' on':''}" data-cid="${cid}">
+      <span class="cp-art"></span>
+      <span class="cp-name">${escapeHtml(c.name)}${cid===current?' <b class="cp-now">YOURS</b>':''}</span>
+      <span class="cp-stats"><b>${st.maxHp}</b> HP \u00b7 <b>${st.atk}</b> ATK \u00b7 <b>${st.def}</b> DEF \u00b7 <b>${st.spd}</b> SPD</span>
+      <span class="cp-role">${escapeHtml(c.role)}</span>
+      <span class="cp-passive">${escapeHtml(c.passiveDesc || '')}</span>
+      ${weak ? `<span class="cp-weak">\u2716 ${escapeHtml(weak.name)} \u2014 ${escapeHtml(weak.desc)}</span>` : ''}
+      <span class="cp-kit">${pvpSkillSet(cid).map(sk=>escapeHtml(sk.name)).join(' \u00b7 ')}</span>
+    </button>`);
+    setArt(card.querySelector('.cp-art'), classArt(cid));
+    card.addEventListener('click', ()=>{ const f = onPick; CLASS_PICK = null; if(f) f(cid); render(); });
+    grid.appendChild(card);
+  });
+  back.querySelector('.cp-x').addEventListener('click', closeClassPicker);
+  back.addEventListener('click', e=>{ if(e.target === back) closeClassPicker(); });
+  return back;
+}
+
+/* Only your own class is ever shown. The wire withholds everyone else's,
+   and the host — who does hold the real list in memory — must not show it
+   either, or hosting would be a free look at the other side. */
+function hiddenClass(seat, mine){ return !mine; }
+/* Safe for a seat whose class we were never sent. */
+function classNameOf(cid){ return (CLASSES[cid] && CLASSES[cid].name) || 'Unchosen'; }
 function netSeatChange(code, patch){
   if(netIsHost()){
     const seat = netSeat(code);
@@ -15459,12 +15755,21 @@ function netSeatChange(code, patch){
     Object.assign(seat, patch);
     netPushLobby();
   } else {
+    /* Show it on your own screen straight away rather than waiting for the
+       room holder to echo it back - over a slow link the button looked dead
+       and people clicked it again. Only ever your own seat: the next push
+       from the holder is still what everybody agrees on. */
+    if(code === netMe()){
+      const seat = netSeat(code);
+      if(seat){ Object.assign(seat, patch); render(); }
+    }
     netToHost({t:'seat', code, name:patch.name, classId:patch.classId, team:patch.team});
   }
 }
 /* The host turns the seats into fighters and starts it. */
 function netStartOnlineMatch(){
   if(!netIsHost()) return;
+  /* the secret's whole life is the lobby; from here everyone can see */
   const pv = App.pvp;
   pv.players = NET.seats.map((seat,i)=>{
     const p = pvpMakePlayer(i, seat.classId, seat.team);
@@ -15482,7 +15787,7 @@ function pvpSetupScreen(){
   outer.appendChild(el(`<div class="px-panel">
     <div class="dg-h2">Local Versus — ${PVP_MIN} to ${PVP_MAX} of you, one device</div>
     <p class="pvp-intro">Everybody picks a class and a side, and then you take it in turns: answer the question, pick a move, pick who it lands on. Miss, and you have spent your turn. Between turns the screen hides everything and says whose go it is, so pass it along.</p>
-    <p class="pvp-intro muted">Everyone is built at <b>level ${PVP_LEVEL}</b>, same for all. <b>No gear, no skill tree, no potions, no artifacts, no hints</b> — there is nothing to spend and nothing to carry in. All that is left is whether you know the material and how you play the turn. Nothing in here touches your save either: no XP, no loot, nothing lost.</p>
+    <p class="pvp-intro muted pvp-blurb">Everyone is built at <b>level ${PVP_LEVEL}</b>, same for all. <b>No gear, no skill tree, no potions, no artifacts, no hints</b> — there is nothing to spend and nothing to carry in. All that is left is whether you know the material and how you play the turn. Nothing in here touches your save either: no XP, no loot, nothing lost.</p>
   </div>`));
 
   /* ---- the roster ---- */
@@ -15492,14 +15797,13 @@ function pvpSetupScreen(){
     const row = el(`<div class="pvp-row t${p.team}">
       <span class="pr-art"></span>
       <input class="pr-name" type="text" value="${escapeHtml(p.name)}" maxlength="14" aria-label="Player name">
-      <select class="pr-class" aria-label="Class">${pvpClassIds().map(cid=>
-        `<option value="${cid}"${cid===p.classId?' selected':''}>${escapeHtml(CLASSES[cid].name)}</option>`).join('')}</select>
+      <button class="pr-pick" aria-label="Change class">${escapeHtml(CLASSES[p.classId].name)} \u25BE</button>
       <button class="pr-team">${escapeHtml(PVP_TEAM_NAMES[p.team])}</button>
       <button class="pr-drop" title="Remove">×</button>
     </div>`);
     setArt(row.querySelector('.pr-art'), classArt(p.classId));
     row.querySelector('.pr-name').addEventListener('input', e=>{ p.name = e.target.value.slice(0,14) || PVP_NAMES[i]; });
-    row.querySelector('.pr-class').addEventListener('change', e=>{ p.classId = e.target.value; render(); });
+    row.querySelector('.pr-pick').addEventListener('click', ()=>openClassPicker(p.classId, cid=>{ p.classId = cid; render(); }));
     row.querySelector('.pr-team').addEventListener('click', ()=>{ p.team = p.team ? 0 : 1; render(); });
     const drop = row.querySelector('.pr-drop');
     if(pv.players.length <= PVP_MIN) drop.disabled = true;

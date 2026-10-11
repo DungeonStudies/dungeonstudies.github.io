@@ -1,4 +1,8 @@
 const {chromium} = require('playwright');
+/* Screenshots land somewhere that exists on any machine, not in one
+   session's scratchpad - these files outlive the session that wrote them. */
+const OUT=(process.env.SD_SHOTS||'/tmp/sd-shots')+'/';
+require('fs').mkdirSync(OUT,{recursive:true});
 (async()=>{
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium', args:['--headless=new']});
   const p = await b.newPage({viewport:{width:1280,height:900}});
@@ -7,7 +11,7 @@ const {chromium} = require('playwright');
   await p.waitForTimeout(500);
   await p.click('button:has-text("Study")');
   await p.waitForTimeout(250);
-  await p.screenshot({path:'/tmp/claude-0/-home-user-Study-dungeon/fc42c896-5bb9-5d8b-88e3-1899bbc43a28/scratchpad/s_notes.png', fullPage:true});
+  await p.screenshot({path:OUT+'s_notes.png', fullPage:true});
   // add a subject through the UI
   await p.click('button:has-text("+ New Subject")');
   await p.waitForTimeout(150);
@@ -25,7 +29,7 @@ const {chromium} = require('playwright');
   await p.click('button:has-text("Play")');
   await p.waitForTimeout(250);
   console.log('realms:', await p.$$eval('.realm-card', es=>es.map(e=>e.textContent.replace(/\s+/g,' ').trim())));
-  await p.screenshot({path:'/tmp/claude-0/-home-user-Study-dungeon/fc42c896-5bb9-5d8b-88e3-1899bbc43a28/scratchpad/s_select3.png', fullPage:true});
+  await p.screenshot({path:OUT+'s_select3.png', fullPage:true});
   console.log('errors:', errs);
   await b.close();
 })();

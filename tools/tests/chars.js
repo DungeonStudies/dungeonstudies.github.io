@@ -1,5 +1,9 @@
 const {chromium} = require('playwright');
-const SC='/tmp/claude-0/-home-user-Study-dungeon/fc42c896-5bb9-5d8b-88e3-1899bbc43a28/scratchpad/';
+/* Screenshots land somewhere that exists on any machine, not in one
+   session's scratchpad - these files outlive the session that wrote them. */
+const OUT=(process.env.SD_SHOTS||'/tmp/sd-shots')+'/';
+require('fs').mkdirSync(OUT,{recursive:true});
+const SC=OUT;
 (async()=>{
   const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium', args:['--headless=new']});
   const p = await b.newPage({viewport:{width:1280,height:1000}});
