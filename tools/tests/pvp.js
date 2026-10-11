@@ -205,6 +205,106 @@ const {chromium}=require('playwright');
     try{ render(); }catch(e){ bad.push('a question stage with no question threw: ' + e.message); }
     if(pv.stage !== 'pass') bad.push('a question stage with no question did not fall back to the handover');
 
+    /* ---------- 8d. the netcode's authority rules ----------
+       The real connection cannot be tested from here - it needs two machines
+       and a live introduction service. What CAN be tested, and is the part
+       that would actually ruin a match, is who is allowed to do what. */
+    const sentToGuests = [];
+    const realToAll = window.netToAll;
+    window.netToAll = m => sentToGuests.push(m);
+
+    /* set up a 1v1 as if we were the host, with the guest owning seat 2 */
+    pv.players = [pvpMakePlayer(0,'warrior',0), pvpMakePlayer(1,'mage',1)];
+    pv.players[0].name='Host'; pv.players[0].net='HOST11';
+    pv.players[1].name='Guest'; pv.players[1].net='GUEST2';
+    Object.assign(NET, {on:true, role:'host', code:'HOST11', me:'HOST11', hostCode:'HOST11',
+      conns:{}, seats:[], status:'', error:''});
+    pvpStart();
+    if(!netIsOnline() || !netIsHost()) bad.push('the host does not think it is hosting');
+    /* the state that travels must be plain data */
+    let snap = null;
+    try{ snap = netSnapshot(); JSON.stringify(snap); }
+    catch(e){ bad.push('the state going down the wire is not serialisable: '+e.message); }
+    if(snap && typeof snap.players[0].hp !== 'number') bad.push('the snapshot lost the fighters');
+
+    /* whoever is up, only THEY may act, and only from their own machine */
+    const up = pvpCurrent();
+    const other = pv.players.find(x=>x.id !== up.id);
+    pvpAskQuestion();
+    const q0 = pv.question;
+    const wrongCode = other.net;
+    await netHostApplyIntent(wrongCode, {t:'answer', value:q0.correct});
+    if(pv.stage !== 'question') bad.push('a player acted on somebody else\u2019s turn');
+    await netHostApplyIntent('NOBODY', {t:'answer', value:q0.correct});
+    if(pv.stage !== 'question') bad.push('an unknown machine was allowed to act');
+    /* and the right one works */
+    await netHostApplyIntent(up.net, {t:'answer', value:q0.correct});
+    await wait(50);
+    if(pv.stage !== 'skill') bad.push('the player whose turn it is could not answer (stage '+pv.stage+')');
+    /* an intent for the wrong stage is refused */
+    await netHostApplyIntent(up.net, {t:'target', id:other.id});
+    if(pv.stage !== 'skill') bad.push('a target was accepted during the move choice');
+    log.push(['authority', 'only the player whose turn it is, from their own machine']);
+
+    /* the host broadcasts after every change it makes */
+    const before2 = sentToGuests.length;
+    pvpPickSkillLocal(pvpSkillSet(up.classId)[0].id);
+    if(sentToGuests.length <= before2) bad.push('the host changed the match without telling anyone');
+    if(!sentToGuests.some(m=>m && m.t === 'state')) bad.push('no state was ever broadcast');
+
+    /* a guest only sees its own turn */
+    Object.assign(NET, {role:'guest', me:'GUEST2'});
+    if(pvpIsMine(up) === (up.net === 'GUEST2') ? false : true){ /* shape check below */ }
+    if(pvpIsMine(pv.players.find(x=>x.net==='HOST11'))) bad.push('a guest believes it owns the host\u2019s fighter');
+    if(!pvpIsMine(pv.players.find(x=>x.net==='GUEST2'))) bad.push('a guest does not own its own fighter');
+    /* and a guest never resolves anything itself */
+    const stageWas = pv.stage, hpWas = other.hp;
+    const sentToHost = [];
+    const realToHost = window.netToHost;
+    window.netToHost = m => sentToHost.push(m);
+    pv.stage = 'question'; pv.question = q0;
+    pv.turn = pv.order.indexOf(pv.players.find(x=>x.net==='GUEST2').id);
+    await pvpAnswer(q0.correct);
+    if(!sentToHost.length) bad.push('a guest answered without asking the host');
+    if(pv.stage !== 'question') bad.push('a guest resolved its own answer instead of asking');
+    window.netToHost = realToHost;
+    window.netToAll = realToAll;
+
+    /* a guest takes whatever the host sends, wholesale */
+    const fake = {stage:'over', players:pv.players, order:pv.order, turn:0, round:7,
+                  winner:1, log:['from the host'], online:true};
+    netGuestOnData({t:'state', state:fake});
+    if(App.pvp.round !== 7 || App.pvp.winner !== 1) bad.push('a guest ignored the state the host sent');
+    /* the live object must BE the one everybody is holding, not a new one */
+    if(App.pvp !== pv) bad.push('adopting a state swapped the match object and orphaned every reference to it');
+    log.push(['guest', 'asks, never resolves, and takes the host\u2019s state']);
+
+    /* ---------- 8e. friends are saved and forgotten ---------- */
+    netReset();
+    const n0f = friends().length;
+    await addFriend('Test Mate', 'abc-123');
+    const added = friends().find(f=>f.code === 'ABC123');
+    if(!added) bad.push('a friend was not saved, or the code was not cleaned up');
+    if(added && added.name !== 'Test Mate') bad.push('the friend\u2019s name was lost');
+    await addFriend('Test Mate', 'ABC123');
+    if(friends().filter(f=>f.code==='ABC123').length !== 1) bad.push('adding the same code twice made two friends');
+    let threw = false;
+    try{ await addFriend('x','ab'); }catch(e){ threw = true; }
+    if(!threw) bad.push('a code too short to be a code was accepted');
+    const live = friends().find(f=>f.code === 'ABC123');
+    if(live) await removeFriend(live.id);
+    if(friends().length !== n0f) bad.push('forgetting a friend did not work');
+    log.push(['friends', 'saved, de-duplicated, forgotten']);
+
+    /* ---------- 8f. offline is unchanged by all of it ---------- */
+    netReset();
+    if(netIsOnline()) bad.push('leaving the room did not disconnect');
+    pv.players = [pvpMakePlayer(0,'warrior',0), pvpMakePlayer(1,'mage',1)];
+    pvpStart();
+    if(pv.players.some(x=>x.net !== 'local')) bad.push('an offline match did not mark its fighters local');
+    if(!pvpMyTurn()) bad.push('offline, the person holding the screen cannot act');
+    pv.players.forEach(x=>{ if(!pvpIsMine(x)) bad.push('offline, a fighter is not actable'); });
+
     /* ---------- 9. you cannot wander off mid-match ---------- */
     App.dungeonView='pvp'; pv.stage='question'; render();
     if(!inTheDungeon()) bad.push('you can leave the Play tab in the middle of somebody else’s turn');
