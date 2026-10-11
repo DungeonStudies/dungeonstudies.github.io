@@ -4718,6 +4718,103 @@ async function saveCharacter(){ await saveProfiles(); }
 async function saveRun(){ await saveProfiles(); }
 function activeSubject(){ return App.subjects.find(s=>s.id===App.activeSubjectId) || App.subjects[0]; }
 
+/* ========================== THE WHOLE SAVE ==========================
+   Everything a player has is in their browser and nowhere else, which is
+   fine right up until the browser forgets. Clearing site data does it.
+   A new phone does it. Safari does it on its own after a week or so of not
+   visiting, unless the game has been installed to the home screen.
+
+   So: the entire save, as one file. Not the deck - the deck file has existed
+   for a while and carries the cards. This is the LOT: every realm's hero,
+   their levels, their gear, their trees and bars, the Index of everything
+   discovered, every subject with its notes and glossary and syllabus, the
+   settings. Take it to another machine and you are where you left off.
+
+   What is deliberately NOT in it: your API key. A key is a credential and a
+   credential does not belong in a file you might email to yourself or drop
+   in a shared folder. The file says so where the key would have been, so
+   nobody wonders why they have to type it again.
+   ================================================================== */
+const SAVE_FORMAT = 'study-dungeon-save';
+const SAVE_FILE_VERSION = 1;   /* the FILE's schema. SAVE_VERSION above is the
+                                  character record's, and they are not the
+                                  same number or the same thing. */
+/* Everything that belongs to the player, and nothing that belongs to the
+   machine they happen to be sitting at. */
+const SAVE_KEYS = ['subjects','profiles','profileId','activeSubjectId','discovered',
+                   'friends','examMode','tutSeen','sound','aiModel'];
+const SAVE_SECRETS = ['apiKey','ollama','adCfg'];
+
+async function buildSaveFile(){
+  const data = {};
+  for(const k of SAVE_KEYS){
+    const v = await Storage.get(k, null);
+    if(v !== null && v !== undefined) data[k] = v;
+  }
+  const subs = data.subjects || [];
+  return {
+    format: SAVE_FORMAT, version: SAVE_FILE_VERSION,
+    exported: new Date().toISOString(),
+    /* a human-readable line at the top, so you can tell two files apart
+       without opening a JSON viewer */
+    summary: summariseSave(data),
+    note: 'Your API key is not in this file on purpose — it is a credential. You will set it again on the new device.',
+    data,
+  };
+}
+function summariseSave(data){
+  const subs = data.subjects || [];
+  const profiles = data.profiles || {};
+  const cards = subs.reduce((n,s2)=>n + ((s2.flashcards||[]).length), 0);
+  const terms = subs.reduce((n,s2)=>n + ((s2.terms||[]).length), 0);
+  const heroes = Object.keys(profiles).length;
+  const best = Object.values(profiles).reduce((m,p)=>Math.max(m, (p.character && p.character.highestFloor) || 0), 0);
+  return subs.length + ' subject' + (subs.length===1?'':'s') + ', ' + cards + ' cards, ' + terms + ' terms, '
+       + heroes + ' realm' + (heroes===1?'':'s') + ', deepest floor ' + best;
+}
+function saveFileName(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  return 'study-dungeon-' + d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + '.json';
+}
+async function exportSave(){
+  const file = await buildSaveFile();
+  downloadText(saveFileName(), JSON.stringify(file, null, 2));
+  return file.summary;
+}
+/* Anything off a disk is somebody else's data until it has been checked. A
+   save that is not a save is refused by name rather than half-applied. */
+function parseSaveFile(text){
+  let d = null;
+  try{ d = JSON.parse(text); }catch(e){ throw new Error('that is not a JSON file'); }
+  if(!d || typeof d !== 'object') throw new Error('that file is not a save');
+  if(d.format !== SAVE_FORMAT){
+    if(Array.isArray(d.cards) || d.format === DECK_FORMAT)
+      throw new Error('that is a DECK file, not a save — import it from the Deck file panel in Study');
+    throw new Error('that file is not a Study Dungeon save');
+  }
+  if(!(Number(d.version) <= SAVE_FILE_VERSION)) throw new Error('that save was made by a newer version of the game');
+  const data = d.data;
+  if(!data || typeof data !== 'object') throw new Error('that save is empty');
+  const clean = {};
+  SAVE_KEYS.forEach(k=>{ if(data[k] !== undefined) clean[k] = data[k]; });
+  /* a file that carries a key has had one put in it by hand; it is not ours
+     to load, and loading it would quietly bill somebody */
+  SAVE_SECRETS.forEach(k=>{ delete clean[k]; });
+  if(!clean.subjects && !clean.profiles) throw new Error('that save has nothing in it');
+  if(clean.subjects && !Array.isArray(clean.subjects)) throw new Error('that save’s subjects are damaged');
+  return {summary: d.summary || summariseSave(clean), exported: d.exported || '', data: clean};
+}
+/* Importing REPLACES. Merging two saves is a guess about which hero is the
+   real one, and a wrong guess loses a run; being told plainly that this will
+   overwrite is kinder than being clever. */
+async function importSave(parsed){
+  for(const k of SAVE_KEYS){
+    if(parsed.data[k] !== undefined) await Storage.set(k, parsed.data[k]);
+  }
+  return true;
+}
+
 /* ============================== PIXEL ART ENGINE ==============================
    Hand-authored sprites. Each sprite is a small grid of palette keys drawn with
    pixel-exact runs; the renderer adds a 1px dark outline and paints at integer
@@ -8190,6 +8287,7 @@ function renderAiSettings(){
   c.querySelector('#clear-key').addEventListener('click', async ()=>{ await setApiKey(''); render(); });
   c.appendChild(renderSoundSettings());
   c.appendChild(renderAdSettings());
+  c.appendChild(renderSaveFileSection());
   c.appendChild(renderHelpSection());
   return c;
 }
@@ -8235,6 +8333,64 @@ function renderSoundSettings(){
   });
   return wrap;
 }
+/* ---- moving your save to another machine -------------------------------
+   Until there are accounts this is the only way across, and even once there
+   are it is the thing that still works when the account service does not. */
+function renderSaveFileSection(){
+  const wrap = el(`<div style="margin-top:26px;border-top:1px solid rgba(139,124,246,.22);padding-top:18px;">
+    <h2>💾 Your save</h2>
+    <p class="muted">Everything you have is kept <b>in this browser and nowhere else</b> \u2014 your heroes, your levels, your gear, your notes, your glossary, the Index. That means it does not follow you to another phone, and it is gone if you clear your browsing data. Safari also clears it on its own if you have not opened the game for about a week, <b>unless you have installed it to your home screen</b>.</p>
+    <p class="muted">So take a copy. One file, everything in it, import it anywhere.</p>
+    <p class="muted" id="save-sum"></p>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn" id="save-export">Export my save</button>
+      <button class="btn secondary" id="save-import">Import a save\u2026</button>
+      <input type="file" id="save-file" accept=".json,application/json" style="display:none;">
+    </div>
+    <p class="muted" id="save-msg" style="margin-top:10px;"></p>
+    <div class="feedback-msg bad" id="save-confirm" style="display:none;margin-top:12px;"></div>
+  </div>`);
+  const msg = wrap.querySelector('#save-msg');
+  const sum = wrap.querySelector('#save-sum');
+  buildSaveFile().then(f=>{ sum.innerHTML = 'Right now that is: <b>' + escapeHtml(f.summary) + '</b>.'; }).catch(()=>{});
+  wrap.querySelector('#save-export').addEventListener('click', async ()=>{
+    try{ msg.textContent = 'Exported \u2014 ' + (await exportSave()) + '. Your API key is not in it, on purpose.'; }
+    catch(err){ msg.textContent = 'Could not export: ' + err.message; }
+  });
+  const input = wrap.querySelector('#save-file');
+  wrap.querySelector('#save-import').addEventListener('click', ()=>input.click());
+  const confirmBox = wrap.querySelector('#save-confirm');
+  input.addEventListener('change', async ()=>{
+    const f = input.files && input.files[0];
+    input.value = '';
+    if(!f) return;
+    let parsed = null;
+    try{ parsed = parseSaveFile(await f.text()); }
+    catch(err){ msg.textContent = 'Could not read that: ' + err.message; return; }
+    msg.textContent = '';
+    /* An import replaces everything, so it asks once, plainly, and says what
+       is on both sides of the trade. */
+    const mine = await buildSaveFile();
+    confirmBox.style.display = '';
+    confirmBox.innerHTML = '<b>This replaces everything on this device.</b><br>'
+      + 'Coming in: ' + escapeHtml(parsed.summary) + (parsed.exported ? ' (saved ' + escapeHtml(parsed.exported.slice(0,10)) + ')' : '') + '<br>'
+      + 'Being replaced: ' + escapeHtml(mine.summary) + '<br>';
+    const yes = el(`<button class="btn" style="margin-top:10px;">Replace it</button>`);
+    const no = el(`<button class="btn ghost" style="margin-top:10px;margin-left:8px;">Cancel</button>`);
+    yes.addEventListener('click', async ()=>{
+      try{
+        await importSave(parsed);
+        confirmBox.style.display = 'none';
+        msg.textContent = 'Imported. Reloading\u2026';
+        setTimeout(()=>location.reload(), 600);
+      }catch(err){ msg.textContent = 'Import failed: ' + err.message; }
+    });
+    no.addEventListener('click', ()=>{ confirmBox.style.display = 'none'; });
+    confirmBox.appendChild(yes); confirmBox.appendChild(no);
+  });
+  return wrap;
+}
+
 /* The Help page IS the tour. One script, two ways of reading it, so they can
    never drift apart. */
 function renderHelpSection(){
