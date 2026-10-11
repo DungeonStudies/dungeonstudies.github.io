@@ -782,6 +782,7 @@ body::after{ /* rock strata, chisel speckle, vignette */
   font-size:14px;text-transform:none;letter-spacing:0;}
 .px-btn.big{font-size:16px;padding:14px 26px;}
 
+.pvptabs button{font-size:14px;}
 .net-codecard{text-align:center;}
 .nc-label{font-family:var(--ui);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
   color:rgba(255,255,255,.45);}
@@ -813,47 +814,66 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .pvp-strip{font-family:var(--ui);font-weight:800;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
   color:rgba(255,255,255,.6);padding:2px 2px 10px;}
 .pvp-strip .ps-cls{font-weight:600;letter-spacing:0;text-transform:none;opacity:.6;margin-left:8px;}
-.pvp-scene{min-height:400px;margin-bottom:14px;}
+.pvp-scene{min-height:470px;margin-bottom:14px;}
+/* Six on one floor, at the dungeon's own scale. The front rank stands nearest
+   the middle and the ranks behind it fall back and outward, each a little
+   smaller - so a one-against-one puts two people face to face in the centre
+   of the room exactly where the dungeon puts a hero and a monster, and a
+   three-against-three fills the room without anybody hiding behind anybody.
+
+   These override the dungeon's own .combatant.player / .combatant.monster
+   positions, which is why every one of them is written through .pvp-scene. */
+.pvp-scene .pvp-combatant{position:absolute;z-index:3;transform-origin:bottom center;}
+/* How big everybody is depends on how many of them there are. A one-against-
+   one is two people at full size standing the same distance apart as a hero
+   and a monster do in the dungeon; a three-against-three has nine times the
+   bodies to fit in the same room, so the whole cast steps back a size. The
+   alternative is squeezing a duel to fit a formation it is not in, or hiding
+   somebody behind somebody else, and both of those are worse. */
+.pvp-scene .pvp-combatant{bottom:6%;}
+.pvp-scene .pvp-combatant.side1{left:auto;}
+/* one a side: a duel, at full size */
+.pvp-scene.n1 .pvp-combatant.side0.rank0{left:24%;}
+.pvp-scene.n1 .pvp-combatant.side1.rank0{right:24%;}
+/* two a side */
+.pvp-scene.n2 .pvp-combatant.side0.rank0{left:26%;}
+.pvp-scene.n2 .pvp-combatant.side0.rank1{left:9%;  bottom:20%; transform:scale(.84);}
+.pvp-scene.n2 .pvp-combatant.side1.rank0{right:26%;}
+.pvp-scene.n2 .pvp-combatant.side1.rank1{right:9%; bottom:20%; transform:scale(.84);}
+/* three a side: everyone steps back a size so the whole line is visible */
+.pvp-scene.n3 .pvp-combatant.side0.rank0{left:27%; transform:scale(.84);}
+.pvp-scene.n3 .pvp-combatant.side0.rank1{left:13%; bottom:19%; transform:scale(.73);}
+.pvp-scene.n3 .pvp-combatant.side0.rank2{left:1%;  bottom:31%; transform:scale(.64);}
+.pvp-scene.n3 .pvp-combatant.side1.rank0{right:27%; transform:scale(.84);}
+.pvp-scene.n3 .pvp-combatant.side1.rank1{right:13%; bottom:19%; transform:scale(.73);}
+.pvp-scene.n3 .pvp-combatant.side1.rank2{right:1%;  bottom:31%; transform:scale(.64);}
+.pvp-scene .pvp-combatant.rank0{z-index:5;}
+.pvp-scene .pvp-combatant.rank1{z-index:4;}
+.pvp-scene .pvp-combatant.rank2{z-index:3;}
+/* Team 1 wears the dungeon's `monster` class so it faces left and inherits
+   every monster animation - but it is a person, not a monster, so it does not
+   inherit the enemy health bar. Green means health on both sides; the team is
+   said by the name above it. */
+.pvp-scene .pvp-combatant .hpbar-fill{background:linear-gradient(90deg,#3fcf8e,#8ff0bb);}
+.pvp-scene .pvp-combatant .hpbar-num{color:#06120c;}
+.pvp-scene .pvp-combatant .namebar{font-size:12px;white-space:nowrap;}
+.pvp-scene .pvp-combatant .namebar.t0{color:var(--pvp-red);}
+.pvp-scene .pvp-combatant .namebar.t1{color:var(--pvp-blue);}
+.pvp-scene .pvp-combatant .hpbar-wrap{width:104px;}
+.pvp-scene .pvp-combatant.rank1 .hpbar-wrap,
+.pvp-scene .pvp-combatant.rank2 .hpbar-wrap{width:96px;}
+.pvp-scene .pvp-combatant .energy-row{font-size:10px;letter-spacing:-1px;height:14px;line-height:14px;
+  text-shadow:0 1px 2px #000;}
+.pvp-scene .pvp-combatant.active::before{content:'';position:absolute;inset:-6px -8px -10px;
+  border-radius:14px;border:2px solid rgba(255,217,120,.7);
+  box-shadow:0 0 18px rgba(255,217,120,.28);pointer-events:none;z-index:-1;}
+/* down, and staying down */
+.pvp-scene .pvp-combatant.down{opacity:.45;filter:grayscale(1);}
+.pvp-scene .sprite-box.pvp-fallen{transform:translateY(16px) rotate(-74deg) scaleY(.82);opacity:.75;}
 .pvp-sidetag{position:absolute;top:10px;font-family:var(--ui);font-weight:800;font-size:11px;
-  letter-spacing:.18em;text-transform:uppercase;z-index:5;opacity:.85;}
+  letter-spacing:.18em;text-transform:uppercase;z-index:6;opacity:.85;}
 .pvp-sidetag.s0{left:14px;color:var(--pvp-red);}
 .pvp-sidetag.s1{right:14px;color:var(--pvp-blue);}
-/* Six on one floor. Each rank stands further back, so it sits higher up the
-   scene and is drawn a little smaller - the same cheat every party RPG uses,
-   and the reason you can tell three people apart at a glance. */
-.pvp-combatant{position:absolute;display:flex;flex-direction:column;align-items:center;z-index:3;width:84px;}
-.pvp-combatant::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
-  width:56px;height:12px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.6),transparent 72%);}
-.pvp-combatant.side0.rank0{left:5%;  bottom:9%;}
-.pvp-combatant.side0.rank1{left:15%; bottom:23%; transform:scale(.9);  z-index:2;}
-.pvp-combatant.side0.rank2{left:25%; bottom:36%; transform:scale(.82); z-index:1;}
-.pvp-combatant.side1.rank0{right:5%; bottom:9%;}
-.pvp-combatant.side1.rank1{right:15%;bottom:23%; transform:scale(.9);  z-index:2;}
-.pvp-combatant.side1.rank2{right:25%;bottom:36%; transform:scale(.82); z-index:1;}
-.pvp-combatant.down{opacity:.38;filter:grayscale(1);}
-.pvp-combatant.active::before{content:'';position:absolute;inset:-7px -5px -11px;border-radius:12px;
-  border:2px solid rgba(255,217,120,.75);box-shadow:0 0 16px rgba(255,217,120,.3);pointer-events:none;}
-.pvp-combatant.struck{animation:pvpstruck .5s;}
-@keyframes pvpstruck{0%,100%{transform:translateX(0);}20%{transform:translateX(-6px);}60%{transform:translateX(5px);}}
-.pvp-combatant.side0.rank1.struck,.pvp-combatant.side1.rank1.struck{animation:pvpstruck9 .5s;}
-@keyframes pvpstruck9{0%,100%{transform:scale(.9) translateX(0);}20%{transform:scale(.9) translateX(-6px);}60%{transform:scale(.9) translateX(5px);}}
-.pvp-combatant.side0.rank2.struck,.pvp-combatant.side1.rank2.struck{animation:pvpstruck8 .5s;}
-@keyframes pvpstruck8{0%,100%{transform:scale(.82) translateX(0);}20%{transform:scale(.82) translateX(-6px);}60%{transform:scale(.82) translateX(5px);}}
-.pc-name{font-family:var(--ui);font-weight:800;font-size:11px;letter-spacing:.04em;
-  text-shadow:0 1px 3px #000,0 0 6px #000;margin-bottom:2px;white-space:nowrap;}
-.pc-hp{position:relative;width:68px;height:7px;border-radius:4px;overflow:hidden;
-  background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);}
-.pc-hpfill{position:absolute;inset:0;background:linear-gradient(90deg,#3fcf8e,#8ff0bb);transition:width .35s;}
-.pc-hpn{font-weight:700;color:rgba(255,255,255,.74);font-size:10px;}
-.pc-sprite{width:72px;height:72px;margin-top:3px;}
-.pc-sprite svg{width:100%;height:100%;display:block;image-rendering:pixelated;}
-.pc-sprite.mirror{transform:scaleX(-1);}
-.pc-energy{font-size:8px;letter-spacing:-1px;height:12px;line-height:12px;
-  text-shadow:0 1px 2px #000;}
-.pc-float{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-family:var(--ui);
-  font-weight:800;font-size:18px;color:#ffa3b5;text-shadow:0 2px 4px #000;
-  animation:pvpfloat .9s forwards;pointer-events:none;z-index:8;}
-.pc-float.crit{color:#ffd978;font-size:22px;}
 
 /* the attack bar: you choose the NAME, not the sprite */
 .attack-bar{margin-top:4px;}
@@ -871,20 +891,23 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .abt-fill{position:absolute;inset:0;background:linear-gradient(90deg,#f0647a,#ffa3b5);}
 .abt-num{font-family:var(--ui);font-size:11px;color:rgba(255,255,255,.6);}
 .ab-back{margin-top:10px;}
+/* On a phone the room is shorter and the whole cast shrinks together, which
+   keeps the formation rather than squeezing people on top of each other. */
 @media (max-width:620px){
-  .pvp-scene{min-height:340px;}
-  .pvp-combatant{width:66px;}
-  .pc-sprite{width:56px;height:56px;}
-  .pvp-combatant.side0.rank1{left:17%;} .pvp-combatant.side0.rank2{left:30%;}
-  .pvp-combatant.side1.rank1{right:17%;} .pvp-combatant.side1.rank2{right:30%;}
+  .pvp-scene{min-height:330px;}
+  .pvp-scene.n1 .pvp-combatant.side0.rank0{left:22%;transform:scale(.66);}
+  .pvp-scene.n1 .pvp-combatant.side1.rank0{right:22%;transform:scale(.66);}
+  .pvp-scene.n2 .pvp-combatant.side0.rank0{left:25%;transform:scale(.60);}
+  .pvp-scene.n2 .pvp-combatant.side0.rank1{left:6%; transform:scale(.52);}
+  .pvp-scene.n2 .pvp-combatant.side1.rank0{right:25%;transform:scale(.60);}
+  .pvp-scene.n2 .pvp-combatant.side1.rank1{right:6%; transform:scale(.52);}
+  .pvp-scene.n3 .pvp-combatant.side0.rank0{left:26%;transform:scale(.55);}
+  .pvp-scene.n3 .pvp-combatant.side0.rank1{left:13%;transform:scale(.48);}
+  .pvp-scene.n3 .pvp-combatant.side0.rank2{left:1%; transform:scale(.42);}
+  .pvp-scene.n3 .pvp-combatant.side1.rank0{right:26%;transform:scale(.55);}
+  .pvp-scene.n3 .pvp-combatant.side1.rank1{right:13%;transform:scale(.48);}
+  .pvp-scene.n3 .pvp-combatant.side1.rank2{right:1%; transform:scale(.42);}
 }
-.pvp-side{min-width:0;}
-.ps-label{font-family:var(--ui);font-weight:800;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  margin-bottom:7px;opacity:.8;}
-.pvp-side.s0 .ps-label{color:var(--pvp-red);} .pvp-side.s1 .ps-label{color:var(--pvp-blue);text-align:right;}
-.ps-row{display:grid;gap:9px;}
-.pvp-vs{font-family:var(--ui);font-weight:800;font-size:15px;letter-spacing:.1em;color:rgba(255,255,255,.3);
-  align-self:center;padding:0 2px;}
 .pvp-fighter{position:relative;display:grid;grid-template-columns:46px 1fr;grid-template-rows:auto auto auto;
   gap:2px 10px;padding:9px 11px;border-radius:12px;border:1px solid var(--hairline);
   background:linear-gradient(158deg,rgba(38,34,56,.72),rgba(18,16,30,.8));border-left-width:3px;
@@ -4419,6 +4442,7 @@ const App = {
   uploadQueue: null,
   quizCard: null,
   quizDiff: 'medium',
+  pvpView: 'local',          // which side of the Versus bar you are on
   examResult: null,          // the marked paper, while you are reading it
   pvp: null,                 // a local versus match, which owns its own world
 };
@@ -4529,6 +4553,7 @@ async function loadAll(){
   await getOllama();
   await loadExamMode();        /* before a question can be built */
   await loadFriends();         /* before the versus room can offer them */
+  installClickSound();         /* and before anything can be pressed in silence */
 
   App.discovered = (await Storage.get('discovered', null)) || {};
   let profiles = await Storage.get('profiles', null);
@@ -7643,6 +7668,7 @@ let inlineForm = null;
 
 function setTopTab(tab){
   if(tab==='play') App.dungeonView = 'select';   // Play always opens the realm picker
+  if(tab==='pvp') openPvp();
   App.topTab = tab; render();
 }
 function render(){
@@ -7654,12 +7680,17 @@ function render(){
   panel.className = App.topTab==='study' ? 'light' : 'dungeon';
   root.appendChild(panel);
   if(App.topTab==='study') panel.appendChild(renderStudy());
+  else if(App.topTab==='pvp') panel.appendChild(renderPvpTab());
   else if(App.topTab==='characters') panel.appendChild(renderCharactersScreen());
   else panel.appendChild(renderDungeon());
   /* whatever is in front of you decides whether anything is making a noise */
   if(App.topTab === 'play' && App.dungeonView === 'battle' && App.run && App.run.active){
     ambientFor(App.run.monster);
-  } else ambientStop();
+    roomStart(App.run.monster ? App.run.monster.region : regionForFloor(App.run.floor));
+  } else if(App.topTab === 'pvp' && inAMatch()){
+    roomStart(PVP_ARENA.region);          /* versus is fought in a room too */
+    ambientStop();
+  } else { ambientStop(); roomStop(); }
   maybeStartTutorial();
   if(TUT.on) requestAnimationFrame(()=>paintTutorial());   /* it measures a live page */
 }
@@ -7667,8 +7698,6 @@ function render(){
    bar while a floor is live, so the only way out of a fight is through it or
    by fleeing - not by wandering off to reshuffle a skill tree. */
 function inTheDungeon(){
-  if(App.topTab === 'play' && App.dungeonView === 'pvp'
-     && App.pvp && App.pvp.stage !== 'setup') return true;
   return App.topTab === 'play' && App.run && App.run.active
     && ['battle','loot','explore','checkpoint','loading','party',
         'dwarf_intro','dwarf_reward','dwarf_shop','dwarf_steal_warn','dwarf_gift','dwarf_result',
@@ -7676,13 +7705,17 @@ function inTheDungeon(){
 }
 function renderNav(){
   const nav = el(`<div class="shell-nav"><span class="brand">⚔ STUDY DUNGEON</span></div>`);
-  const tabs = inTheDungeon() ? [['play','Play']] : [['play','Play'],['study','Study'],['characters','Characters']];
+  /* Mid-match there is nowhere else to be either, so Versus keeps the bar to
+     itself the way a live floor does. */
+  const tabs = inAMatch() ? [['pvp','Versus']]
+             : inTheDungeon() ? [['play','Play']]
+             : [['play','Play'],['pvp','Versus'],['study','Study'],['characters','Characters']];
   tabs.forEach(([id,label])=>{
     const b = el(`<button class="navtab${App.topTab===id?' active':''}" data-tut="${id}tab">${label}</button>`);
     b.addEventListener('click', ()=>setTopTab(id));
     nav.appendChild(b);
   });
-  if(App.dungeonView === 'pvp' && App.pvp && App.pvp.stage !== 'setup')
+  if(inAMatch())
     nav.appendChild(el(`<span class="navtab in-run">⚔ Versus — round ${App.pvp.round}</span>`));
   else if(inTheDungeon()) nav.appendChild(el(`<span class="navtab in-run">⚔ In a run — floor ${App.run.floor}</span>`));
   const qs = el(`<div class="quickstats"></div>`);
@@ -11328,6 +11361,127 @@ const AMBIENT_VOICE = {
   dragon:{cue:'roar', every:[7000, 13000]},
   primordial:{cue:'roar', every:[8000, 15000]},
 };
+/* ====================== THE ROOM ITSELF ========================
+   The creature in front of you has had a voice for a while. The room has not,
+   and a dungeon in silence is a spreadsheet with a sword on it.
+
+   This is the sound of the place you are standing in, and like everything
+   else that makes a noise in here it is synthesised rather than loaded: a
+   file would be megabytes, and the whole point of this game is that it is one
+   file you can open off a disk with no connection.
+
+   Three layers, because that is what a room is:
+     - a BED, a very low filtered rumble that never stops. It is the air in a
+       space with no way out, and it is the layer you stop hearing after a
+       minute, which is exactly what it is for.
+     - DRIPS, somewhere behind you, at an irregular interval. Irregular is the
+       whole trick: a drip on a metronome is a clock, and a clock is annoying.
+     - a TORCH, close by, crackling. Only in the rooms that have fire in them.
+
+   Each region gets its own mix, so the Ember Foundry roars where the
+   Frostbound Hollow only sighs, and the Abyssal Void has no air in it at all.
+   ============================================================= */
+const ROOM_TONE = {
+  1:  {bed:[46, 0.030], drip:[2600, 7000], torch:0.9, name:'crypt'},
+  2:  {bed:[38, 0.034], drip:[1400, 3800], torch:0.3, name:'grotto'},
+  3:  {bed:[62, 0.044], drip:[5200,11000], torch:1.0, name:'foundry'},
+  4:  {bed:[34, 0.024], drip:[3400, 8200], torch:0.2, name:'hollow'},
+  5:  {bed:[44, 0.026], drip:[2200, 5600], torch:0.5, name:'thicket'},
+  6:  {bed:[50, 0.030], drip:[4200, 9500], torch:0.6, name:'ruins'},
+  7:  {bed:[58, 0.040], drip:[5000,11000], torch:1.0, name:'infernal'},
+  8:  {bed:[40, 0.028], drip:[3000, 7400], torch:0.4, name:'necropolis'},
+  9:  {bed:[66, 0.046], drip:[6000,13000], torch:1.0, name:'caldera'},
+  10: {bed:[28, 0.022], drip:[4800,10000], torch:0.0, name:'void'},
+};
+function roomTone(region){ return ROOM_TONE[clamp(region||1, 1, 10)] || ROOM_TONE[1]; }
+
+let ROOM = {on:false, region:null, bed:null, bedGain:null, filt:null, drip:null, torch:null};
+function roomStop(){
+  if(ROOM.drip){ clearTimeout(ROOM.drip); ROOM.drip = null; }
+  if(ROOM.torch){ clearTimeout(ROOM.torch); ROOM.torch = null; }
+  if(ROOM.bedGain && Sfx.ctx){
+    /* never cut a bed dead - that is a click, and a click is the one sound
+       nobody forgives */
+    try{
+      const t = Sfx.ctx.currentTime;
+      ROOM.bedGain.gain.cancelScheduledValues(t);
+      ROOM.bedGain.gain.setValueAtTime(ROOM.bedGain.gain.value, t);
+      ROOM.bedGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      const src = ROOM.bed;
+      setTimeout(()=>{ try{ src.stop(); }catch(e){} }, 700);
+    }catch(e){}
+  }
+  ROOM.bed = null; ROOM.bedGain = null; ROOM.filt = null;
+  ROOM.on = false; ROOM.region = null;
+}
+function roomStart(region){
+  if(!Sfx.boot()) return;
+  if(ROOM.on && ROOM.region === region) return;    /* already standing here */
+  roomStop();
+  const tone = roomTone(region);
+  const c = Sfx.ctx, t = c.currentTime;
+  ROOM.on = true; ROOM.region = region;
+
+  /* the bed: looping noise, filtered down to almost nothing but weight */
+  try{
+    const n = Math.floor(c.sampleRate * 2);
+    const buf = c.createBuffer(1, n, c.sampleRate);
+    const d = buf.getChannelData(0);
+    /* brown-ish noise: a running sum, which has far more bottom than white */
+    let last = 0;
+    for(let i=0;i<n;i++){ const w = Math.random()*2-1; last = (last + 0.02*w) / 1.02; d[i] = last*3.5; }
+    const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.value = tone.bed[0]; lp.Q.value = 0.7;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, tone.bed[1] * Sfx.level()), t + 1.6);
+    src.connect(lp); lp.connect(g); g.connect(Sfx.master);
+    src.start(t);
+    ROOM.bed = src; ROOM.bedGain = g; ROOM.filt = lp;
+  }catch(e){}
+
+  /* drips, at an interval that is never the same twice */
+  const drip = ()=>{
+    if(!ROOM.on) return;
+    try{
+      const at = Sfx.ctx.currentTime;
+      const f = 820 + Math.random()*900;
+      Sfx.blip(f, f*0.38, 0.09, 'sine', 0.045, at);
+      /* the room answering it, a beat later and quieter */
+      Sfx.blip(f*0.52, f*0.3, 0.22, 'sine', 0.014, at + 0.07);
+    }catch(e){}
+    ROOM.drip = setTimeout(drip, randInt(tone.drip[0], tone.drip[1]));
+  };
+  ROOM.drip = setTimeout(drip, randInt(600, tone.drip[1]));
+
+  /* and a torch, where there is one */
+  if(tone.torch > 0){
+    const crackle = ()=>{
+      if(!ROOM.on) return;
+      try{
+        const at = Sfx.ctx.currentTime;
+        const k = 1 + Math.floor(Math.random()*3);
+        for(let i=0;i<k;i++) Sfx.noise(0.035 + Math.random()*0.04, 0.020 * tone.torch,
+                                       2200 + Math.random()*2600, 900, 2.2, at + i*0.055);
+      }catch(e){}
+      ROOM.torch = setTimeout(crackle, randInt(700, 2600));
+    };
+    ROOM.torch = setTimeout(crackle, randInt(300, 1400));
+  }
+}
+/* The volume slider has to reach a sound that is already playing. */
+function roomSyncLevel(){
+  if(!ROOM.on || !ROOM.bedGain || !Sfx.ctx) return;
+  const tone = roomTone(ROOM.region);
+  try{
+    const t = Sfx.ctx.currentTime;
+    ROOM.bedGain.gain.cancelScheduledValues(t);
+    ROOM.bedGain.gain.setValueAtTime(Math.max(0.0001, ROOM.bedGain.gain.value), t);
+    ROOM.bedGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, tone.bed[1] * Sfx.level()), t + 0.25);
+  }catch(e){}
+}
+
 let AMBIENT_TIMER = null, AMBIENT_FOR = null;
 function ambientStop(){
   if(AMBIENT_TIMER){ clearTimeout(AMBIENT_TIMER); AMBIENT_TIMER = null; }
@@ -11996,7 +12150,6 @@ function renderDungeon(){
     case 'hurt': wrap.appendChild(renderHurt()); break;
     case 'index': wrap.appendChild(renderIndex()); break;
     case 'gemshop': wrap.appendChild(renderGemShop()); break;
-    case 'pvp': wrap.appendChild(renderPvp()); break;
     case 'merchant': return renderMerchant();
     case 'dwarf_intro': wrap.appendChild(renderDwarfIntro()); break;
     case 'dwarf_reward': wrap.appendChild(renderDwarfReward()); break;
@@ -12496,6 +12649,10 @@ async function getSound(){
 async function setSound(patch){
   SOUND_CACHE = Object.assign({}, await getSound(), patch||{});
   await Storage.set('sound', SOUND_CACHE);
+  /* The room is already playing when you move the slider, so it has to be
+     told. Every other sound in the game reads the level when it starts; this
+     one started a while ago and is still going. */
+  if(typeof roomSyncLevel === 'function') roomSyncLevel();
   return SOUND_CACHE;
 }
 const Sfx = {
@@ -12576,6 +12733,18 @@ const Sfx = {
                     s.blip(f, f, 0.24, 'triangle', 0.14, s.ctx.currentTime + i*0.075)); },
     coin:  s => { s.blip(880, 1318.5, 0.16, 'sine', 0.12); },
     step:  s => { s.blip(440, 660, 0.09, 'sine', 0.07); },
+    /* ---- the interface ----
+       Nothing here is a tune. They are short, quiet and slightly different
+       from each other, because a screen where every press makes the SAME
+       noise is worse than one that makes none: you stop hearing it in a
+       minute and it is just a tick. A press should tell you what KIND of
+       thing you pressed. */
+    tap:   s => { s.blip(1320, 1760, 0.035, 'sine',     0.045); },   /* a plain button */
+    pick:  s => { s.blip(880, 1245, 0.055, 'triangle',  0.055); },   /* something chosen */
+    go:    s => { s.blip(523, 784,  0.075, 'triangle',  0.075);
+                  s.blip(784, 1046, 0.09,  'sine',      0.045, s.ctx.currentTime + 0.055); },
+    back:  s => { s.blip(660, 392,  0.065, 'sine',      0.05); },    /* leaving, undoing */
+    tick:  s => { s.blip(1760, 1760, 0.022, 'square',   0.028); },   /* a toggle, a tab */
   },
   play(id){
     if(this.level() <= 0) return;
@@ -12585,6 +12754,39 @@ const Sfx = {
     if(cue){ try{ cue(this); }catch(e){} }
   },
 };
+
+/* ---- every press makes a noise -----------------------------------------
+   One listener on the document rather than a line in two hundred handlers.
+   It reads what was pressed out of the DOM and picks a voice to match, so a
+   button added tomorrow is already wired up and nobody has to remember.
+
+   It also does something the game needed anyway: a browser will not start
+   audio until the person has interacted, and this is the interaction. The
+   first press of the session is what wakes the sound up for all of it. */
+const CLICK_VOICE = [
+  ['.px-btn.red, .fr-drop, .pr-drop, [data-back], .ab-back', 'back'],
+  ['.px-btn.gold, .btn:not(.secondary):not(.ghost), .ab-target, .diffbtn, .skillbtn', 'go'],
+  ['.mcq-opt, .realm-card, .party-card, .hub-tile, .benchbtn, .item-card button, .friend-row button', 'pick'],
+  ['.navtab, .studytabs button, .subject-chip, input[type="checkbox"], select, .pr-team', 'tick'],
+];
+function clickVoiceFor(node){
+  for(const [sel, cue] of CLICK_VOICE){
+    try{ if(node.closest(sel)) return cue; }catch(e){}
+  }
+  return 'tap';
+}
+function installClickSound(){
+  /* pointerdown, not click: the sound belongs to the press, and waiting for
+     the release puts an audible lag on every button in the game. */
+  document.addEventListener('pointerdown', e=>{
+    const node = e.target && e.target.closest
+      ? e.target.closest('button, .px-btn, .btn, a[href], input[type="checkbox"], select, .realm-card, .subject-chip, .mcq-opt, [role="button"]')
+      : null;
+    if(!node) return;
+    if(node.disabled || node.getAttribute('aria-disabled') === 'true') return;
+    Sfx.play(clickVoiceFor(node));
+  }, {passive:true, capture:true});
+}
 
 /* ============================ THE MUSIC ============================
    Nobody speaks over the ending. There is just this under it.
@@ -12839,7 +13041,6 @@ function renderHub(){
     ['🔨', 'Craft', 'Forge, enchant & ascend', '', ()=>{ App.dungeonView='craft'; render(); }, 'craft'],
     ['📖', 'Index', 'Discovered loot & foes', '', ()=>{ App.dungeonView='index'; render(); }, 'index'],
     ['💎', 'Gem Shop', 'One-run blessings', '', ()=>{ App.dungeonView='gemshop'; render(); }, 'gemshop'],
-    ['🤝', 'Local Versus', '2–6 of you, one device', '', openPvp, 'pvp'],
   ].forEach(([icon,label,sub,cls2,fn,tut])=>{
     const b = el(`<button class="px-btn hub-tile ${cls2}" data-tut="${tut}"><span class="ht-icon">${icon}</span><span class="ht-label">${label}</span><span class="ht-sub">${sub}</span></button>`);
     b.addEventListener('click', fn);
@@ -14208,6 +14409,14 @@ async function pvpStrikeLocal(targetId){
   if(!me || !foe || !skill || pv.stage !== 'target' || pv.resolving) return;
   pv.resolving = true;
   me.energy -= (skill.cost || 0);
+  /* the attack itself: the same wind-up, the same lunge, the same spell the
+     dungeon plays, because it is literally the dungeon's function */
+  pv.stage = 'strike';
+  pv.pending = null;
+  netPushState();
+  render();
+  const els = pvpEls(me, foe);
+  try{ await playerAttackIntro(els, (skill.cost||0) > 0, skill, skill); }catch(e){}
   const hits = skill.hits || 1;
   let total = 0, anyCrit = false, guarded = false;
   for(let i = 0; i < hits && !foe.down; i++){
@@ -14226,11 +14435,23 @@ async function pvpStrikeLocal(targetId){
          + (anyCrit ? ' (CRIT)' : '') + (guarded ? ' (guarded)' : '')
          + (foe.down ? '. ' + foe.name + ' is down.' : '.'));
   Sfx.play(anyCrit ? 'crit' : 'hit');
-  pv.stage = 'strike';
-  pv.pending = null;
+  /* and the landing: the flash, the number, the shake, the bar - all of it
+     the same code the dungeon runs, driven straight off the live DOM rather
+     than waiting for a re-render */
+  if(els.scene) els.scene.classList.add('shake');
+  heroClipSeq(els.monsterSprite, foe.classId, [['hurt', 300]]);
+  playAnim(els.monsterSprite, 'hitflash', 300);
+  updateHpBar(els.monsterHpFill, els.monsterHpNum, foe.hp, foe.maxHp);
+  showFloatingNumber(els.monsterHost, '-' + total + (anyCrit ? '!' : ''), anyCrit);
   netPushState();
-  render();
-  await sleep(900);
+  await sleep(420);
+  if(els.scene) els.scene.classList.remove('shake');
+  if(foe.down){
+    /* it goes down the way everything else in this game goes down */
+    try{ await playHeroFall(els.monsterSprite, foe); }catch(e){ await sleep(200); }
+  } else {
+    await sleep(240);
+  }
   pv.hit = null;
   pv.resolving = false;
   const dead = [0,1].filter(t=>pvpAlive(t).length === 0);
@@ -14509,6 +14730,7 @@ function pvpMyTurn(){ return pvpIsMine(pvpCurrent()); }
    Anything already holding a reference keeps working. */
 function netAdoptState(state){
   if(!state) return;
+  if(netIsHost()) return;            /* the host is the source; it adopts nothing */
   if(!App.pvp) App.pvp = defaultPvp();
   const keep = {mode: App.pvp.mode, myName: App.pvp.myName};
   Object.keys(state).forEach(k=>{ App.pvp[k] = state[k]; });
@@ -14516,11 +14738,35 @@ function netAdoptState(state){
   App.pvp.waiting = false;
   App.pvp.resolving = false;
 }
+/* THE ANSWER DOES NOT TRAVEL.
+   The state the host sends out used to carry the whole question object, and a
+   question object carries its own answer. Anybody in the room could have read
+   it out of the state in a console before typing a word - which is not a
+   clever exploit, it is just looking at what you were handed.
+
+   So the copy that goes on the wire has the answer and the explanation cut
+   out of it until the moment they stop mattering: the answer is only sent
+   once the response is already locked in and the reveal is on screen. The
+   host keeps the full question for itself, because the host is the one
+   marking it. Nobody else ever needs it, so nobody else ever gets it. */
+const NET_OPEN_STAGES = ['question', 'skill', 'target'];
+function netRedactQuestion(q, stage){
+  if(!q) return q;
+  const copy = Object.assign({}, q);
+  if(NET_OPEN_STAGES.indexOf(stage) >= 0){
+    delete copy.correct;
+    delete copy.why;
+    delete copy.hintText;
+    delete copy.criteria;
+  }
+  return copy;
+}
 function netSnapshot(){
   const pv = App.pvp;
   return JSON.parse(JSON.stringify({
     stage: pv.stage, players: pv.players, order: pv.order, turn: pv.turn, round: pv.round,
-    diff: pv.diff, srcId: pv.srcId, question: pv.question, pending: pv.pending,
+    diff: pv.diff, srcId: pv.srcId, question: netRedactQuestion(pv.question, pv.stage),
+    pending: pv.pending,
     winner: pv.winner, log: pv.log, note: pv.note, hit: pv.hit,
     lastCorrect: pv.lastCorrect, online: true,
   }));
@@ -14548,28 +14794,42 @@ async function netHostApplyIntent(code, act){
   else if(act.t === 'ready' && pv.stage === 'pass') pvpAskQuestion();
 }
 /* ---- the screens -------------------------------------------------------- */
-/* ---- choosing how you are playing -------------------------------------- */
-function pvpModeScreen(){
-  const outer = document.createDocumentFragment();
-  outer.appendChild(el(`<div class="px-panel">
-    <div class="dg-h2">Versus</div>
-    <p class="pvp-intro">Same questions, out of your own notes, except the thing across the room is your friend. Everyone is built the same — no gear, no skill tree, no potions, no hints, nothing to spend. All that is left is whether you know the material and how you play the turn.</p>
-  </div>`));
-  const grid = el(`<div class="px-panel"><div class="hub-grid"></div></div>`);
-  const g = grid.querySelector('.hub-grid');
-  const tile = (icon,label,sub,cls,fn)=>{
-    const b = el(`<button class="px-btn hub-tile ${cls}"><span class="ht-icon">${icon}</span><span class="ht-label">${escapeHtml(label)}</span><span class="ht-sub">${escapeHtml(sub)}</span></button>`);
-    b.addEventListener('click', fn); g.appendChild(b);
-  };
-  tile('\U0001F310', 'Online with friends', 'Open a room, share the code', 'gold', ()=>{ App.pvp.mode='online'; App.pvp.stage='room'; render(); });
-  tile('\U0001F91D', 'Same device', 'Pass it round the table', '', ()=>{ App.pvp.mode='local'; App.pvp.stage='setup'; render(); });
-  outer.appendChild(grid);
-  const back = el(`<div class="px-panel" style="text-align:center;"><button class="px-btn">Back</button></div>`);
-  back.querySelector('button').addEventListener('click', ()=>{ App.pvp=null; App.dungeonView='hub'; render(); });
-  outer.appendChild(back);
-  return outer;
+/* ---- the Versus tab ----------------------------------------------------
+   Local and online are not two settings of one thing, they are two different
+   games: one is a phone going round a table, the other is two houses. So they
+   get a bar between them rather than a mode buried in a screen. */
+function renderPvpTab(){
+  if(!App.pvp) App.pvp = defaultPvp();
+  const wrap = el('<div></div>');
+  const live = inAMatch();
+  if(!live){
+    const tabs = el(`<div class="studytabs pvptabs"></div>`);
+    [['local','🤝 Same device'],['online','🌐 Online with friends']].forEach(([id,label])=>{
+      const b = el(`<button class="${App.pvpView===id?'active':''}" data-tut="pvp${id}">${label}</button>`);
+      b.addEventListener('click', ()=>setPvpView(id));
+      tabs.appendChild(b);
+    });
+    wrap.appendChild(tabs);
+  }
+  wrap.appendChild(el('<div class="dg-wrap"></div>')).appendChild(renderPvp());
+  return wrap;
 }
-
+/* Switching sides of the bar cannot drag the other one's state along: leaving
+   Online hangs up, and leaving Local throws the half-built roster away. */
+function setPvpView(id){
+  if(App.pvpView === id) return;
+  if(inAMatch()) return;                 /* not mid-match, you do not */
+  if(id === 'local' && netIsOnline()) netReset();
+  App.pvpView = id;
+  App.pvp.mode = id;
+  App.pvp.stage = (id === 'online') ? 'room' : 'setup';
+  App.topTab = 'pvp';
+  render();
+}
+/* Is a match actually being played right now, as opposed to being set up? */
+function inAMatch(){
+  return !!(App.pvp && ['pass','question','reveal','skill','target','strike'].indexOf(App.pvp.stage) >= 0);
+}
 /* ---- the room: a code, a friends list, and who has arrived ------------- */
 function pvpRoomScreen(){
   const outer = document.createDocumentFragment();
@@ -14718,9 +14978,6 @@ function pvpRoomScreen(){
     leave.querySelector('button').addEventListener('click', ()=>{ netReset(); render(); });
     outer.appendChild(leave);
   }
-  const back = el(`<div class="px-panel" style="text-align:center;"><button class="px-btn">Back</button></div>`);
-  back.querySelector('button').addEventListener('click', ()=>{ netReset(); App.pvp.stage='mode'; render(); });
-  outer.appendChild(back);
   return outer;
 }
 function netSeatChange(code, patch){
@@ -14816,9 +15073,6 @@ function pvpSetupScreen(){
   if(ok) btn.addEventListener('click', pvpStart);
   go.appendChild(btn);
   if(!ok) go.appendChild(el(`<p class="pvp-intro">Both sides need somebody on them.</p>`));
-  const back = el(`<button class="px-btn" style="margin-top:10px;">Back</button>`);
-  back.addEventListener('click', ()=>{ App.dungeonView='hub'; render(); });
-  go.appendChild(back);
   outer.appendChild(go);
   return outer;
 }
@@ -14827,10 +15081,10 @@ function pvpAliveSetup(team){ return App.pvp.players.filter(p=>p.team===team).le
    it is gone, the same as a game of cards on a table. */
 function openPvp(){
   if(!App.pvp) App.pvp = defaultPvp();
-  if(['setup','over','room','mode'].indexOf(App.pvp.stage) < 0) App.pvp.stage = 'mode';
-  else if(App.pvp.stage !== 'over') App.pvp.stage = App.pvp.mode === 'local' ? 'setup' : 'mode';
-  App.dungeonView = 'pvp';
-  render();
+  App.topTab = 'pvp';
+  if(inAMatch() || App.pvp.stage === 'over') return;   /* leave a live match alone */
+  App.pvp.mode = App.pvpView;
+  App.pvp.stage = (App.pvpView === 'online') ? 'room' : 'setup';
 }
 
 /* ---- the arena ----------------------------------------------------------
@@ -14849,21 +15103,52 @@ function pvpFighterNode(p, slot){
   const pv = App.pvp;
   const me = pvpCurrent();
   const isTurn = me && me.id === p.id && pv.stage !== 'pass';
-  const hurt = pv.hit && pv.hit.id === p.id;
-  const pct = Math.round(clamp(p.hp / Math.max(1, p.maxHp), 0, 1) * 100);
-  const node = el(`<div class="pvp-combatant side${p.team} rank${slot}${p.down?' down':''}${isTurn?' active':''}${hurt?' struck':''}">
-    <div class="pc-name t${p.team}">${escapeHtml(p.name)} <span class="pc-hpn">${p.hp}</span></div>
-    <div class="pc-hp"><div class="pc-hpfill" style="width:${pct}%"></div></div>
-    <div class="pc-sprite${p.team===1?' mirror':''}"></div>
-    <div class="pc-energy">${'⚡'.repeat(Math.max(0, p.energy))}${p.guard?' \U0001F6E1':''}</div>
-    ${hurt?`<div class="pc-float${pv.hit.crit?' crit':''}">-${pv.hit.dmg}${pv.hit.crit?'!':''}</div>`:''}
+  /* The classes here are the DUNGEON's classes, on purpose. `.combatant` and
+     `.sprite-box` carry every animation this game has ever been taught - the
+     dash, the rush, the cast, the hit flash, the whole death staging - and
+     the cheapest way to have all of it in versus is to be the same thing the
+     dungeon is, rather than a second set of boxes that look similar. */
+  const node = el(`<div class="combatant pvp-combatant ${p.team===1?'monster':'player'} side${p.team} rank${slot}${p.down?' down':''}${isTurn?' active':''}" data-pid="${p.id}">
+    <div class="namebar t${p.team}">${escapeHtml(p.name)}</div>
+    <div class="hpbar-wrap"><div class="hpbar-outer"><div class="hpbar-bg"></div><div class="hpbar-fill"></div><div class="hpbar-num"></div></div></div>
+    <div class="sprite-box">${p.team===1?'<div class="sprite-flip mirror"></div>':'<div class="sprite-flip"></div>'}</div>
+    <div class="energy-row pc-energy">${'⚡'.repeat(Math.max(0, p.energy))}${p.guard?' \U0001F6E1':''}</div>
   </div>`);
-  setArt(node.querySelector('.pc-sprite'), classArt(p.classId, p.down ? 'hurt' : 'idle'));
+  setArt(node.querySelector('.sprite-flip'), classArt(p.classId, p.down ? 'hurt' : 'idle'));
+  updateHpBar(node.querySelector('.hpbar-fill'), node.querySelector('.hpbar-num'), p.hp, p.maxHp);
   return node;
+}
+/* The handles the dungeon's effects expect, pointed at two versus fighters.
+   Everything in the FX layer takes an `els` and asks it for a player sprite
+   and a monster sprite; who those two are is the only thing that changes. */
+function pvpEls(attacker, defender){
+  const scene = document.querySelector('.pvp-scene');
+  const node = p => p ? scene && scene.querySelector('[data-pid="' + p.id + '"]') : null;
+  const an = node(attacker), dn = node(defender);
+  const q = (n, sel) => n ? n.querySelector(sel) : null;
+  return {
+    scene,
+    playerSprite: q(an, '.sprite-box'), playerHost: an,
+    monsterSprite: q(dn, '.sprite-box'), monsterHost: dn,
+    playerHpFill: q(an, '.hpbar-fill'), playerHpNum: q(an, '.hpbar-num'),
+    monsterHpFill: q(dn, '.hpbar-fill'), monsterHpNum: q(dn, '.hpbar-num'),
+  };
+}
+/* A knocked-out fighter is not deleted, it falls over and stays there. The
+   dungeon's own collapse keyframes do the work. */
+async function playHeroFall(box, p){
+  if(!box) return sleep(200);
+  setArt(box.querySelector('.sprite-flip') || box, classArt(p.classId, 'hurt'));
+  box.classList.add('dth', 'die-fell');
+  await sleep(DEATH_MS.fall + 120);
+  box.classList.add('pvp-fallen');
+  box.classList.remove('die-fell');
 }
 function pvpArena(){
   const pv = App.pvp;
-  const scene = el(`<div class="battle-scene pvp-scene">
+  const side = Math.max(pv.players.filter(p=>p.team===0).length,
+                        pv.players.filter(p=>p.team===1).length);
+  const scene = el(`<div class="battle-scene pvp-scene n${clamp(side,1,3)}">
     <div class="scene-bg"></div><div class="scene-dark"></div><div class="scene-light"></div>
     <div class="pvp-sidetag s0">${escapeHtml(PVP_TEAM_NAMES[0])}</div>
     <div class="pvp-sidetag s1">${escapeHtml(PVP_TEAM_NAMES[1])}</div>
@@ -14910,7 +15195,9 @@ function pvpLeaveButton(){
       netReset();
     }
     App.pvp = defaultPvp();
-    App.dungeonView = 'hub';
+    App.pvp.mode = App.pvpView;
+    App.pvp.stage = (App.pvpView === 'online') ? 'room' : 'setup';
+    App.topTab = 'pvp';
     render();
   });
   return b;
@@ -14924,7 +15211,6 @@ function pvpLogPanel(){
 function renderPvp(){
   if(!App.pvp) App.pvp = defaultPvp();
   const pv = App.pvp;
-  if(pv.stage === 'mode') return pvpModeScreen();
   if(pv.stage === 'room') return pvpRoomScreen();
   /* Four stages cannot draw themselves without a question in hand. Reaching
      one of them without it is a bug somewhere else, but it must not be a blank
@@ -14991,7 +15277,10 @@ function renderPvp(){
     const out = el(`<button class="px-btn" style="margin-left:10px;">Done</button>`);
     out.addEventListener('click', ()=>{
       if(netIsOnline()){ if(netIsHost()) netToAll({t:'end'}); netReset(); }
-      App.pvp = defaultPvp(); App.dungeonView='hub'; render();
+      App.pvp = defaultPvp();
+      App.pvp.mode = App.pvpView;
+      App.pvp.stage = (App.pvpView === 'online') ? 'room' : 'setup';
+      render();
     });
     row.appendChild(out);
     outer.appendChild(row);
@@ -15116,8 +15405,8 @@ const TUTORIAL = [
   {tab:'play', view:'hub', at:'[data-tut="gemshop"]', side:'bottom', title:'Blessings, bought with gems',
    text:"Gems come off bosses and out of chests. These are one-run blessings — extra health, free hints, a feather that catches you the first time you fall. Spend them on the run you mean to go deep on."},
 
-  {tab:'play', view:'hub', at:'[data-tut="pvp"]', side:'bottom', title:'And one for when somebody else is here',
-   text:"Local Versus. Two to six of you on this one device, split into two sides — one against one, two against two, three against three. Same questions, out of the same notes, except now the thing across the room is your friend. Answer it, pick a move, pick who it lands on; miss, and you have spent your turn. Between every turn the screen hides everything and says whose go it is, so pass it along. Everyone is built the same, there are no items and no hints and nothing to spend, and it does not touch your save. It is knowledge and how you play the turn, and nothing else."},
+  {tab:'pvp', view:'hub', at:'[data-tut="pvptab"]', side:'bottom', title:'And one for when somebody else is here',
+   text:"Versus, and there are two of them behind this tab. SAME DEVICE is two to six of you round one phone, split into two sides — one against one, two against two, three against three — and between every turn the screen hides everything and says whose go it is, so you pass it along. ONLINE is you and a friend in different houses: you open a room, it gives you a code, they type it in, and your two browsers talk to each other with nothing in between. Either way the questions come out of the same notes, everyone is built the same, there are no items and no hints and nothing to spend, and none of it touches your save. It is knowledge and how you play the turn, and nothing else."},
 
   {tab:'study', view:'hub', at:'[data-tut="studytab"]', side:'bottom', title:'And this is the other half',
    text:"This is the part that is actually a revision app. Paste or upload what you are studying and it becomes the questions the dungeon asks you. There is a generator built in that costs nothing and works offline; if you have an AI key you can use that instead, and it writes better wrong answers."},

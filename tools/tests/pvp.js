@@ -35,8 +35,17 @@ const {chromium}=require('playwright');
       bad.push('a versus build changed when the save changed - it is not a level playing field');
 
     /* ---------- 2. setting up 3v3 ---------- */
+    App.pvpView = 'local';
     openPvp();
-    if(App.dungeonView !== 'pvp') bad.push('Local Versus did not open');
+    if(App.topTab !== 'pvp') bad.push('the Versus tab did not open');
+    if(App.pvp.stage !== 'setup') bad.push('Same device did not open on its setup (stage '+App.pvp.stage+')');
+    /* the bar has two sides and they are two different games */
+    setPvpView('online');
+    if(App.pvp.stage !== 'room') bad.push('Online did not open the room');
+    setPvpView('local');
+    if(App.pvp.stage !== 'setup') bad.push('going back to Same device did not return to its setup');
+    render();
+    if(document.querySelectorAll('.pvptabs button').length !== 2) bad.push('the Versus bar does not have two sides');
     const pv = App.pvp;
     if(pv.players.length !== PVP_MIN) bad.push('a fresh match did not start with '+PVP_MIN+' players');
     const ids = pvpClassIds();
@@ -279,6 +288,36 @@ const {chromium}=require('playwright');
     if(App.pvp !== pv) bad.push('adopting a state swapped the match object and orphaned every reference to it');
     log.push(['guest', 'asks, never resolves, and takes the host\u2019s state']);
 
+    /* ---------- 8d2. the answer does not travel ----------
+       A question object carries its own answer. If the state the host sends
+       out carries the question whole, anybody in the room can read the answer
+       out of a console before typing a word. */
+    Object.assign(NET, {on:true, role:'host', me:'HOST11'});
+    pv.question = {id:'q', mode:'mcq', prompt:'What?', correct:'SECRET-ANSWER',
+                   options:['SECRET-ANSWER','a','b'], why:'SECRET-WHY',
+                   criteria:[{text:'SECRET-CRIT',marks:1}], hintText:'SEC'};
+    ['question','skill','target'].forEach(st=>{
+      pv.stage = st;
+      const wire = JSON.stringify(netSnapshot());
+      ['SECRET-ANSWER','SECRET-WHY','SECRET-CRIT'].forEach(leak=>{
+        /* the right answer is also an option, so look at the question object */
+        const q = netSnapshot().question;
+        if(q.correct || q.why || q.criteria || q.hintText)
+          bad.push('at stage '+st+' the wire still carries the answer');
+      });
+      if(wire.indexOf('SECRET-WHY') >= 0) bad.push('at stage '+st+' the explanation went down the wire');
+      if(wire.indexOf('SECRET-CRIT') >= 0) bad.push('at stage '+st+' the marking guideline went down the wire');
+    });
+    /* but once it is answered and revealed, it is no longer a secret */
+    pv.stage = 'reveal';
+    const revealed = netSnapshot().question;
+    if(revealed.correct !== 'SECRET-ANSWER') bad.push('the reveal does not carry the answer, so nobody can see what it was');
+    /* options still travel while the question is live, or there is nothing to pick */
+    pv.stage = 'question';
+    if((netSnapshot().question.options||[]).length !== 3) bad.push('the options were stripped too, leaving nothing to answer');
+    log.push(['the wire', 'answer, explanation and guideline withheld until the reveal']);
+    netReset();
+
     /* ---------- 8e. friends are saved and forgotten ---------- */
     netReset();
     const n0f = friends().length;
@@ -306,10 +345,15 @@ const {chromium}=require('playwright');
     pv.players.forEach(x=>{ if(!pvpIsMine(x)) bad.push('offline, a fighter is not actable'); });
 
     /* ---------- 9. you cannot wander off mid-match ---------- */
-    App.dungeonView='pvp'; pv.stage='question'; render();
-    if(!inTheDungeon()) bad.push('you can leave the Play tab in the middle of somebody else’s turn');
-    pv.stage='setup';
-    if(inTheDungeon() && !(App.run && App.run.active)) bad.push('the setup screen locks you in, and it should not');
+    App.topTab='pvp'; App.pvp.stage='question';
+    if(!inAMatch()) bad.push('a live turn is not recognised as a live match');
+    render();
+    if(document.querySelectorAll('.navtab').length !== 2)
+      bad.push('mid-match the nav still offers somewhere else to go');
+    App.pvp.stage='setup';
+    if(inAMatch()) bad.push('the setup screen counts as a live match, and it should not');
+    render();
+    if(document.querySelectorAll('.navtab').length < 4) bad.push('out of a match the full nav did not come back');
 
     return {bad, log};
   });
