@@ -58,6 +58,39 @@ const {chromium}=require('playwright');
     if(!mirror.has(true)) bad.push('the team-1 fighter never faced left at all');
     log.push(['facing', 'the right-hand fighter kept its mirror throughout']);
 
+    /* ---- the same bug, underground, wearing a different hat ----
+       The dungeon hero's box holds the charge glow beside the art - the light
+       on a mage's hand that says you are still charged. A clip swap writing
+       innerHTML on the BOX wiped it out, so it vanished for most of every
+       swing and came back when the animation finished: gone at exactly the
+       moment you would look at your character to check. */
+    App.character.classId='mage'; startRun(); App.character.classId='mage';
+    App.run.floor=6; App.run.monster=generateMonster(6,0);
+    App.run.monster.maxHp=999999; App.run.monster.hp=999999;
+    App.dungeonView='battle'; App.topTab='play'; render();
+    await wait(150);
+    const hbox = ()=>document.querySelector('.combatant.player .sprite-box');
+    if(!hbox().querySelector('.sprite-flip')) bad.push('the dungeon hero has no art wrapper');
+    App.run.energy = 10;
+    const focus = SKILLS.mage_focus;
+    await resolvePlayerHit(1, Object.assign({id:'mage_focus'}, focus), true, 0, focus);
+    await wait(500);
+    if(!activeChargeBuff()) bad.push('Focus did not charge the mage');
+    if(!hbox().querySelector('.hand-glow')) bad.push('a charged mage has no glow at rest');
+    App.run.energy = 10;
+    const frames = [];
+    const tick = setInterval(()=>{ const b2 = hbox();
+      frames.push(b2 ? b2.querySelectorAll('.hand-glow').length : -1); }, 25);
+    const bolt = SKILLS.mage_lightning;
+    await resolvePlayerHit(1, Object.assign({id:'mage_lightning'}, bolt), true, 0, bolt);
+    await wait(380);
+    clearInterval(tick);
+    const dark = frames.filter(n=>n === 0).length;
+    if(!activeChargeBuff()) bad.push('the charge fell off during the swing, so this proves nothing');
+    else if(dark) bad.push('the charge glow was wiped for ' + dark + ' of ' + frames.length
+                           + ' frames of the swing');
+    else log.push(['the charge glow', 'held for all ' + frames.length + ' frames of a swing']);
+
     /* and the helper itself, which is what keeps that true */
     const box = document.createElement('div');
     box.innerHTML = '<div class="sprite-flip mirror"></div>';
