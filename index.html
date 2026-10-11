@@ -841,6 +841,28 @@ body::after{ /* rock strata, chisel speckle, vignette */
   background:linear-gradient(158deg,#ffe49a,#f0c24e);
   box-shadow:0 0 26px -8px rgba(255,217,120,.55);}
 
+/* THE UPDATE BAR. Deliberately small and deliberately at the bottom: it is
+   news, not a demand, and the game carries on perfectly well if it is
+   ignored. */
+#sw-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9700;
+  display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:12px;
+  max-width:calc(100vw - 24px);
+  background:linear-gradient(158deg,rgba(44,38,62,.97),rgba(18,16,30,.98));
+  border:1px solid rgba(255,217,120,.4);box-shadow:0 20px 44px -22px #000;
+  animation:swbIn .3s ease;}
+@keyframes swbIn{from{opacity:0;transform:translate(-50%,14px);}to{opacity:1;transform:translate(-50%,0);}}
+.swb-text{font-family:var(--ui);font-size:13px;color:rgba(255,255,255,.82);}
+.swb-go{padding:7px 15px;border-radius:9px;cursor:pointer;font-family:var(--ui);
+  font-weight:800;font-size:12.5px;color:#121018;border:none;
+  background:linear-gradient(158deg,#ffe49a,#f0c24e);}
+.swb-x{width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:800;
+  background:rgba(255,255,255,.07);border:1px solid var(--hairline);color:rgba(255,255,255,.55);}
+@media (max-height:560px) and (orientation:landscape){
+  #sw-bar{bottom:8px;padding:7px 9px 7px 12px;gap:9px;}
+  .swb-text{font-size:11.5px;}
+  .swb-go{padding:5px 12px;font-size:11.5px;}
+}
+
 /* the class picker */
 .cp-back{position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(6,4,12,.82);backdrop-filter:blur(6px);}
@@ -8146,6 +8168,7 @@ function render(){
   } else { ambientStop(); roomStop(); }
   const picker = renderClassPicker();
   if(picker) root.appendChild(picker);
+  paintUpdateBar();          /* held back until you are out of a fight */
   maybeStartTutorial();
   if(TUT.on) requestAnimationFrame(()=>paintTutorial());   /* it measures a live page */
 }
@@ -17169,23 +17192,61 @@ init();
    to yourself. Served over http(s) it becomes installable, and nothing else
    about it changes.
    ================================================================== */
+/* AN UPDATE IS AN OFFER, NOT A SEIZURE.
+   This used to reload the page the instant a new version was deployed. From
+   the player's side that is the game shutting down and starting again while
+   they are holding it - and in the arena it is worse than rude, because a
+   match lives only in memory and an online one takes everybody else down with
+   it. So: the new worker waits, a quiet bar appears saying there is a new
+   version, and nothing happens until it is tapped. The bar is held back
+   entirely while a run or a match is live, so it cannot even be tapped by
+   accident mid-fight; it turns up when you are somewhere safe. */
+const SW = {reg:null, waiting:null, asked:false};
+function swUpdateReady(w){
+  if(!w || SW.waiting === w) return;
+  SW.waiting = w;
+  paintUpdateBar();
+}
+function swSomewhereSafe(){ return !inTheDungeon() && !inAMatch(); }
+function paintUpdateBar(){
+  const had = document.getElementById('sw-bar');
+  if(!SW.waiting || !swSomewhereSafe()){ if(had) had.remove(); return; }
+  if(had) return;
+  const bar = el(`<div id="sw-bar" role="status">
+    <span class="swb-text">A new version of the game is ready.</span>
+    <button class="swb-go">Reload</button>
+    <button class="swb-x" title="Not now">\u00d7</button>
+  </div>`);
+  bar.querySelector('.swb-go').addEventListener('click', ()=>{
+    SW.asked = true;
+    try{ SW.waiting.postMessage({t:'skip'}); }catch(e){}
+    /* the page is fetched network-first, so this gets the new one either way */
+    setTimeout(()=>{ if(SW.asked) location.reload(); }, 400);
+  });
+  bar.querySelector('.swb-x').addEventListener('click', ()=>{ SW.waiting = null; bar.remove(); });
+  document.body.appendChild(bar);
+}
 if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('sw.js').then(reg=>{
-      /* A new version deployed while a tab is open should not sit behind the
-         old one until every tab is closed. */
+      SW.reg = reg;
+      /* one that finished installing while the tab was shut */
+      if(reg.waiting && navigator.serviceWorker.controller) swUpdateReady(reg.waiting);
       reg.addEventListener('updatefound', ()=>{
         const w = reg.installing;
         if(!w) return;
         w.addEventListener('statechange', ()=>{
-          if(w.state === 'installed' && navigator.serviceWorker.controller) App.__swUpdated = true;
+          if(w.state === 'installed' && navigator.serviceWorker.controller) swUpdateReady(w);
         });
       });
     }).catch(()=>{});          /* not installable here; the game does not care */
+    /* Only ever reload because somebody asked. A controller change we did not
+       ask for is another tab taking the update, and it is not our business. */
     let reloading = false;
     navigator.serviceWorker.addEventListener('controllerchange', ()=>{
-      if(reloading) return; reloading = true;
-      if(App.__swUpdated) location.reload();
+      if(reloading || !SW.asked) return;
+      reloading = true;
+      location.reload();
     });
   });
 }

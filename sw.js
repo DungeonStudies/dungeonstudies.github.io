@@ -5,10 +5,18 @@
  * page, the icons, the manifest. Everything the game needs is already inside
  * index.html, which is why there is no asset list to keep in step.
  *
- * Bump CACHE_V on release. The old cache is deleted on activate, the new
- * worker takes over immediately, and any open tab is told to reload once.
+ * Bump CACHE_V on release. The old cache is deleted on activate.
+ *
+ * What this deliberately does NOT do is take over on its own. It used to call
+ * skipWaiting() the moment it installed, the page reloaded itself when the
+ * controller changed, and the result was that deploying an update SHUT THE
+ * GAME DOWN AND REOPENED IT under whoever was playing. Mid-run that is rude;
+ * mid-arena it is destructive, because a match is never written to the save
+ * and an online one takes everybody else down with it. So a new worker waits,
+ * the page offers the update when the player is somewhere safe, and nothing
+ * moves until they say so.
  */
-const CACHE_V = 'dungeon-studies-v1';
+const CACHE_V = 'dungeon-studies-v2';
 const SHELL = [
   './',
   './index.html',
@@ -23,8 +31,13 @@ self.addEventListener('install', e=>{
     caches.open(CACHE_V)
       /* one miss must not fail the whole install, so they go in one at a time */
       .then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{}))))
-      .then(()=>self.skipWaiting())
   );
+  /* no skipWaiting: this one waits until the page asks for it */
+});
+
+/* The page asking. Sent only when the player taps Reload. */
+self.addEventListener('message', e=>{
+  if(e.data && e.data.t === 'skip') self.skipWaiting();
 });
 
 self.addEventListener('activate', e=>{
