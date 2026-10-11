@@ -140,8 +140,8 @@ const {chromium}=require('playwright');
     log.push(['damage at x0.35 vs x2.75', dLow+' then '+dHigh]);
     App.run.examMult = 0;
 
-    /* and the whole submit path, end to end, with no AI anywhere */
-    await setApiKey('');
+    /* and the whole submit path, end to end, with no AI anywhere - which is
+       now the only way it runs, there being nothing left to switch off */
     App.run.floor = 50; App.run.monster = generateMonster(50, 0);
     App.run.hp = App.run.maxHp = 9999;
     App.currentQuestion = buildExamQuestion('hard', questionSources(), 50);

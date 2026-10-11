@@ -22,7 +22,11 @@ const {chromium}=require('playwright');
     App.character.classId='warrior';
     classProg().level = 14; classProg().skillPoints = 3;
     App.character.gems = 77; App.character.highestFloor = 42;
-    await setApiKey('sk-ant-SECRET-SHOULD-NOT-TRAVEL');
+    /* Nothing in the game takes a key any more, but a browser that played it
+       before they were removed still has one sitting in storage - and that is
+       exactly the save somebody is most likely to carry to a new device. It
+       must not travel, so the stripping stays and so does this. */
+    await Storage.set('apiKey', 'sk-ant-SECRET-SHOULD-NOT-TRAVEL');
     await addFriend('Omar','KPX472');
     await saveSubjects(); await saveCharacter();
 
@@ -30,8 +34,9 @@ const {chromium}=require('playwright');
     const text = JSON.stringify(file);
     out.push(['summary', file.summary]);
     /* the key must not be in the file, anywhere */
-    if(text.indexOf('SECRET-SHOULD-NOT-TRAVEL') >= 0) bad.push('the API key travelled in the save file');
+    if(text.indexOf('SECRET-SHOULD-NOT-TRAVEL') >= 0) bad.push('a legacy API key travelled in the save file');
     if(file.data.apiKey !== undefined) bad.push('the save has an apiKey field');
+    if(SAVE_SECRETS.indexOf('apiKey') < 0) bad.push('apiKey is no longer on the strip list, so an old one would travel');
     /* the things that SHOULD be there */
     ['subjects','profiles','discovered','friends'].forEach(k=>{
       if(file.data[k] === undefined) bad.push('the save is missing ' + k); });

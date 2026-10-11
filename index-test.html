@@ -8676,6 +8676,18 @@ function renderHelpNumbers(){
     <p>No final boss and no bottom. Floor ${MAX_FLOOR} is the end of the first descent; after it the regions cycle, the bosses return with a new title, and the numbers keep climbing. Everywhere else still ends at ${MAX_FLOOR}.</p>
   </div>`);
 }
+/* ============================== DECK FILES ==============================
+   A deck is a file. That is the whole point of this: the game stops caring
+   WHERE a question came from - this browser's generator, a local model, a
+   friend, or somebody who wrote the JSON by hand - and a deck you spent an
+   evening on can be backed up, moved to another machine, or handed to someone
+   sitting the same exam.
+   ==================================================================== */
+/* The game is called Dungeon Studies now and this string is NOT renamed with
+   it: every deck anybody has ever exported carries the old one, and renaming
+   it would reject all of them to no purpose. */
+const DECK_FORMAT = 'study-dungeon-deck';
+const DECK_VERSION = 1;
 function deckToJson(subj){
   return JSON.stringify({
     format: DECK_FORMAT, version: DECK_VERSION,

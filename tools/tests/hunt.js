@@ -105,9 +105,11 @@ const R=[]; const bug=(a,b)=>R.push(a+': '+b);
   });
   r.forEach(x=>bug('save', x));
 
-  // --- 5. study tools with no API key (offline generator must carry it)
+  // --- 5. study tools with no live AI, which is now the default and the
+  //        only thing most people will ever run: the built-in generator
+  //        has to carry the whole feature on its own
   r = await p.evaluate(async()=>{
-    const bad=[]; await setApiKey('');
+    const bad=[];
     try{
       const out = localAnalyze('Photosynthesis converts light into sugar. Mitochondria make ATP for the cell. Chlorophyll absorbs red and blue light.');
       if(!out || !out.flashcards || !out.flashcards.length) bad.push('offline generator made no flashcards');
