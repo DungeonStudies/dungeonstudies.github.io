@@ -837,25 +837,25 @@ body::after{ /* rock strata, chisel speckle, vignette */
   text-transform:uppercase;color:#ffd978;}
 .cp-x{width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:19px;font-weight:800;
   background:rgba(255,255,255,.07);border:1px solid var(--hairline);color:rgba(255,255,255,.65);}
-.cp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:11px;}
-.cp-card{display:grid;gap:5px;padding:13px;border-radius:13px;text-align:left;cursor:pointer;
-  background:linear-gradient(158deg,rgba(44,38,62,.7),rgba(20,17,32,.8));
-  border:1px solid var(--hairline);transition:border-color .16s,transform .16s;}
-.cp-card:hover{transform:translateY(-2px);border-color:rgba(255,217,120,.6);}
-.cp-card.on{border-color:#ffd978;box-shadow:0 0 0 1px rgba(255,217,120,.4);}
-.cp-art{width:62px;height:62px;margin:0 auto 2px;}
-.cp-art svg{width:100%;height:100%;display:block;image-rendering:pixelated;}
-.cp-name{font-family:var(--ui);font-weight:800;font-size:15px;color:#fff;text-align:center;}
-.cp-now{font-size:9px;letter-spacing:.1em;color:#ffd978;margin-left:5px;}
-.cp-stats{font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.72);text-align:center;}
-.cp-role{font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.62);}
-.cp-passive{font-size:11px;line-height:1.5;color:rgba(143,240,187,.75);}
-.cp-weak{font-size:11px;line-height:1.5;color:rgba(255,163,181,.8);}
-.cp-kit{font-size:10px;line-height:1.5;color:rgba(255,255,255,.4);border-top:1px solid rgba(255,255,255,.08);
-  padding-top:5px;margin-top:2px;}
-.pr-pick{padding:7px 11px;border-radius:9px;font-family:var(--ui);font-weight:700;font-size:13px;
+/* the picker's copy of the Characters card: a little roomier across so the
+   stat line stays on one line, and the button pinned to the bottom so five
+   cards of different lengths still line up */
+.cp-panel .class-grid{grid-template-columns:repeat(auto-fill,minmax(248px,1fr));}
+.cp-panel .class-card{cursor:pointer;display:flex;flex-direction:column;}
+.cp-panel .class-card .istat{font-size:11px;white-space:nowrap;}
+.cp-panel .class-card .px-btn{margin-top:auto;align-self:center;}
+.cp-panel .class-card .idesc:last-of-type{margin-bottom:12px;}
+/* the two lines the Characters screen has no use for but a fighter does */
+.class-card .weak-line{color:#ffa3b5;font-size:12px;margin-top:8px;}
+.class-card .kit-line{font-size:11px;color:var(--text-faint);margin-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);padding-top:9px;}
+/* who you are, and the way to stop being it */
+.pr-cls{display:flex;align-items:center;gap:9px;min-width:0;}
+.pr-cls b{font-family:var(--ui);font-weight:800;font-size:13px;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pr-pick{padding:6px 10px;border-radius:9px;font-family:var(--ui);font-weight:700;font-size:12px;
   background:rgba(255,217,120,.12);border:1px solid rgba(255,217,120,.4);color:#ffd978;cursor:pointer;
-  width:100%;text-align:left;}
+  white-space:nowrap;flex:none;}
 .pr-pick:hover{background:rgba(255,217,120,.2);}
 .pr-static.secret{color:rgba(255,255,255,.35);font-style:italic;}
 .pr-art.pr-unknown{border-radius:8px;background:repeating-linear-gradient(45deg,
@@ -2631,25 +2631,32 @@ body::after{ /* rock strata, chisel speckle, vignette */
   .pr-pick,.pr-team,.pr-drop{padding:5px 8px;font-size:11.5px;}
   .pvp-row input,.pvp-row select{padding:5px 7px;font-size:12px;}
 
-  /* the class picker, which has to show five whole cards in 560px of height */
+  /* the class picker, which has to show five whole cards in 560px of height.
+     The cards are the Characters ones, so this shrinks THOSE - and only
+     inside the picker, because the Characters screen itself is fine. */
   .cp-back{padding:8px;}
   .cp-panel{max-height:95vh;padding:12px 14px;border-radius:13px;}
   .cp-panel .pvp-intro{font-size:10.5px;line-height:1.4;margin:0 0 8px;}
   .cp-head{margin-bottom:5px;}
   .cp-title{font-size:16px;}
-  /* and the cards turn on their side - portrait on the left, everything
-     written beside it - because a tall narrow card at this height wraps the
-     weakness onto four lines and you can only see one and a half of them. */
-  .cp-grid{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:8px;}
-  .cp-card{padding:9px 11px;column-gap:11px;row-gap:1px;
-    grid-template-columns:48px 1fr;align-items:start;}
-  .cp-art{grid-column:1;grid-row:1 / span 5;align-self:center;width:48px;height:48px;margin:0;}
-  .cp-name,.cp-stats,.cp-passive,.cp-weak,.cp-kit{grid-column:2;text-align:left;}
-  .cp-name{font-size:13.5px;}
-  .cp-stats{font-size:10px;}
-  .cp-role{display:none;}            /* the blurb; the stats beside it say it better */
-  .cp-passive,.cp-weak{font-size:10px;line-height:1.4;}
-  .cp-kit{font-size:9px;padding-top:3px;}
+  /* the card turns on its side - portrait on the left, everything written
+     beside it - because upright at this height one class fills the screen
+     and you cannot compare it with anything. */
+  .cp-panel .class-grid{grid-template-columns:repeat(auto-fit,minmax(308px,1fr));gap:8px;}
+  .cp-panel .class-card{display:grid;grid-template-columns:56px 1fr;column-gap:12px;
+    padding:9px 12px;border-radius:12px;align-items:start;text-align:left;}
+  .cp-panel .class-card:hover{transform:none;}      /* no room to lift */
+  /* a span COUNT, not "/ -1": there are no explicit rows here, so -1 is the
+     end of an empty explicit grid and the art would sit in row 1 alone,
+     stretching it to 58px and dropping a hole under the name. */
+  .cp-panel .class-card .cc-art{grid-column:1;grid-row:1 / span 8;height:58px;align-self:center;}
+  .cp-panel .class-card .cc-art svg{width:54px;height:58px;}
+  .cp-panel .class-card > :not(.cc-art){grid-column:2;text-align:left;}
+  .cp-panel .class-card .cname{font-size:13px;letter-spacing:.07em;margin:0 0 2px;}
+  .cp-panel .class-card .istat{font-size:9.5px;margin-top:0;white-space:normal;}
+  .cp-panel .class-card .idesc{font-size:10px;line-height:1.4;margin-top:5px;}
+  .cp-panel .class-card .kit-line{font-size:9.5px;margin-top:6px;padding-top:5px;}
+  .cp-panel .class-card .px-btn{margin-top:7px;justify-self:start;padding:5px 14px;font-size:12px;}
 
   /* the versus write-up: the first line stays, the long reassurance goes */
   .pvp-intro{font-size:11px;line-height:1.45;}
@@ -15652,7 +15659,7 @@ function pvpRoomScreen(){
       const row = el(`<div class="pvp-row t${seat.team}">
         <span class="pr-art${hidden?' pr-unknown':''}"></span>
         <span class="pr-name static">${escapeHtml(seat.name)}${seat.host?' <small>host</small>':''}${mine?' <small>you</small>':''}</span>
-        ${mine ? `<button class="pr-pick">${escapeHtml(classNameOf(seat.classId))} \u25BE</button>`
+        ${mine ? `<span class="pr-cls"><b>${escapeHtml(classNameOf(seat.classId))}</b><button class="pr-pick">Change class</button></span>`
           : `<span class="pr-static${hidden?' secret':''}">${
               hidden ? '? ready' : escapeHtml(classNameOf(seat.classId))}</span>`}
         <button class="pr-team"${(mine||netIsHost())?'':' disabled'}>${escapeHtml(PVP_TEAM_NAMES[seat.team])}</button>
@@ -15715,24 +15722,32 @@ function renderClassPicker(){
   if(!CLASS_PICK) return null;
   const {current, onPick} = CLASS_PICK;
   const back = el(`<div class="cp-back"><div class="cp-panel" role="dialog">
-    <div class="cp-head"><span class="cp-title">Choose your fighter</span>
+    <div class="cp-head"><span class="cp-title">Change class</span>
       <button class="cp-x" title="Close">\u00d7</button></div>
-    <p class="pvp-intro muted" style="margin:0 0 14px;">Everyone is built at level ${PVP_LEVEL}, so this is the only real choice you make before the fight. What each one is bad at is written down there with what it is good at.</p>
-    <div class="cp-grid"></div></div></div>`);
-  const grid = back.querySelector('.cp-grid');
+    <p class="pvp-intro muted" style="margin:0 0 16px;">Everyone is built at level ${PVP_LEVEL}, so this is the only real choice you make before the fight. What each one is bad at is written down there with what it is good at.</p>
+    <div class="class-grid"></div></div></div>`);
+  const grid = back.querySelector('.class-grid');
   pvpClassIds().forEach(cid=>{
-    const c = CLASSES[cid], st = pvpStats(cid), weak = CLASS_WEAKNESS[cid];
-    const card = el(`<button class="cp-card${cid===current?' on':''}" data-cid="${cid}">
-      <span class="cp-art"></span>
-      <span class="cp-name">${escapeHtml(c.name)}${cid===current?' <b class="cp-now">YOURS</b>':''}</span>
-      <span class="cp-stats"><b>${st.maxHp}</b> HP \u00b7 <b>${st.atk}</b> ATK \u00b7 <b>${st.def}</b> DEF \u00b7 <b>${st.spd}</b> SPD</span>
-      <span class="cp-role">${escapeHtml(c.role)}</span>
-      <span class="cp-passive">${escapeHtml(c.passiveDesc || '')}</span>
-      ${weak ? `<span class="cp-weak">\u2716 ${escapeHtml(weak.name)} \u2014 ${escapeHtml(weak.desc)}</span>` : ''}
-      <span class="cp-kit">${pvpSkillSet(cid).map(sk=>escapeHtml(sk.name)).join(' \u00b7 ')}</span>
-    </button>`);
-    setArt(card.querySelector('.cp-art'), classArt(cid));
-    card.addEventListener('click', ()=>{ const f = onPick; CLASS_PICK = null; if(f) f(cid); render(); });
+    const c = CLASSES[cid], st = pvpStats(cid), weak = CLASS_WEAKNESS[cid], on = cid === current;
+    const card = el(`<div class="class-card${on?' active':''}" data-cid="${cid}">
+      <div class="cc-art"></div>
+      <span class="cname">${escapeHtml(c.name)}</span>
+      <span class="istat">Lv ${PVP_LEVEL} \u00b7 ${st.maxHp} HP \u00b7 ${st.atk} ATK \u00b7 ${st.def} DEF \u00b7 ${st.spd} SPD</span>
+      <span class="idesc">${escapeHtml(c.role)}</span>
+      ${c.passiveDesc ? `<span class="idesc passive-line">${escapeHtml(c.passiveDesc)}</span>` : ''}
+      ${weak ? `<span class="idesc weak-line">\u2716 ${escapeHtml(weak.name)} \u2014 ${escapeHtml(weak.desc)}</span>` : ''}
+      <span class="idesc kit-line">${pvpSkillSet(cid).map(sk=>escapeHtml(sk.name)).join(' \u00b7 ')}</span>
+    </div>`);
+    setArt(card.querySelector('.cc-art'), classArt(cid));
+    /* no inline margin: the stylesheet pins this to the bottom of the card
+       so five cards of different lengths still line their buttons up */
+    const b = el(`<button class="px-btn small">${on?'Active':'Select'}</button>`);
+    if(on) b.disabled = true;
+    else b.addEventListener('click', ()=>{ const f = onPick; CLASS_PICK = null; if(f) f(cid); render(); });
+    card.appendChild(b);
+    /* the whole card is the target too - on a phone the button is a small
+       thing to hit and the card is right there */
+    if(!on) card.addEventListener('click', e=>{ if(e.target !== b) b.click(); });
     grid.appendChild(card);
   });
   back.querySelector('.cp-x').addEventListener('click', closeClassPicker);
@@ -15796,7 +15811,7 @@ function pvpSetupScreen(){
     const row = el(`<div class="pvp-row t${p.team}">
       <span class="pr-art"></span>
       <input class="pr-name" type="text" value="${escapeHtml(p.name)}" maxlength="14" aria-label="Player name">
-      <button class="pr-pick" aria-label="Change class">${escapeHtml(CLASSES[p.classId].name)} \u25BE</button>
+      <span class="pr-cls"><b>${escapeHtml(CLASSES[p.classId].name)}</b><button class="pr-pick">Change class</button></span>
       <button class="pr-team">${escapeHtml(PVP_TEAM_NAMES[p.team])}</button>
       <button class="pr-drop" title="Remove">×</button>
     </div>`);

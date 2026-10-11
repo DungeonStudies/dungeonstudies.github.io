@@ -81,7 +81,7 @@ require('fs').mkdirSync(OUT,{recursive:true});
     if(!own) bad.push('a guest has no change-class button on their own seat');
     else {
       own.click();
-      const card = Array.from(document.querySelectorAll('.cp-card')).find(c=>c.dataset.cid === 'cleric');
+      const card = Array.from(document.querySelectorAll('.cp-panel .class-card')).find(c=>c.dataset.cid === 'cleric');
       if(!card) bad.push('the guest picker is missing a class');
       else card.click();
       if(netSeat('BBB222').classId !== 'cleric') bad.push('a guest pick did not land on their own seat');
@@ -98,23 +98,36 @@ require('fs').mkdirSync(OUT,{recursive:true});
     App.pvpView='local'; openPvp(); render();
     const btn = document.querySelector('.pr-pick');
     if(!btn) bad.push('no change-class button next to the player');
+    else if(btn.textContent.trim() !== 'Change class') bad.push('the button says "' + btn.textContent.trim() + '"');
     else btn.click();
     if(!document.querySelector('.cp-back')) bad.push('the picker did not open');
-    const cards = document.querySelectorAll('.cp-card');
+    /* it is the Characters screen's own card, so it has to BE that card */
+    const cards = document.querySelectorAll('.cp-panel .class-card');
     if(cards.length !== pvpClassIds().length) bad.push('the picker shows ' + cards.length + ' of ' + pvpClassIds().length + ' classes');
-    const first = (document.querySelector('.cp-card')||{}).textContent || '';
-    ['HP','ATK'].forEach(w=>{ if(first.indexOf(w) < 0) bad.push('a picker card does not show ' + w); });
-    if(first.indexOf('✖') < 0) bad.push('a picker card does not say what the class is BAD at');
+    const first = document.querySelector('.cp-panel .class-card');
+    const ftxt = (first || {}).textContent || '';
+    [['.cc-art','the portrait'],['.cname','the name'],['.istat','the stat line'],
+     ['.passive-line','the passive'],['.weak-line','the weakness'],['.kit-line','the move list'],
+     ['.px-btn','the select button']].forEach(pair=>{
+      if(!first || !first.querySelector(pair[0])) bad.push('a picker card is missing ' + pair[1]);
+    });
+    ['HP','ATK','DEF','SPD'].forEach(w=>{ if(ftxt.indexOf(w) < 0) bad.push('a picker card does not show ' + w); });
+    if(ftxt.indexOf('Lv ' + PVP_LEVEL) < 0) bad.push('a picker card does not show the versus level');
+    if(ftxt.indexOf('\u2716') < 0) bad.push('a picker card does not say what the class is BAD at');
+    const act = document.querySelector('.cp-panel .class-card.active');
+    if(!act) bad.push('the picker does not mark the class you already are');
+    else if((act.querySelector('.px-btn') || {}).textContent !== 'Active') bad.push('the current class is offered for selection again');
     /* picking one actually changes the seat, and shuts the picker */
-    const was = document.querySelector('.pr-pick').textContent;
+    const was = (document.querySelector('.pr-cls b') || {}).textContent || '';
     const other = Array.from(cards).find(c=>c.dataset.cid && c.dataset.cid !== App.pvp.players[0].classId);
     if(other){
-      other.click();
+      other.click();                              /* the whole card, not only the button */
       if(document.querySelector('.cp-back')) bad.push('the picker stayed open after a pick');
-      const now = (document.querySelector('.pr-pick')||{}).textContent || '';
+      const now = (document.querySelector('.pr-cls b') || {}).textContent || '';
       if(now === was) bad.push('picking a different class changed nothing');
+      if(now !== CLASSES[other.dataset.cid].name) bad.push('the row shows ' + now + ' after picking ' + other.dataset.cid);
     } else bad.push('could not find a class other than the one already picked');
-    out.push(['the picker', cards.length + ' cards with stats, passive, weakness and kit']);
+    out.push(['the picker', cards.length + ' Characters cards, and the button says "Change class"']);
     return {bad, out};
   });
   await p.screenshot({path:OUT+'picker.png'});
