@@ -23,9 +23,12 @@ const {chromium}=require('playwright');
     const tones = [];
     for(let i=1;i<=10;i++){
       const t = roomTone(i);
-      if(!t || !t.bed || !t.drip) { bad.push('region '+i+' has no room tone'); continue; }
+      if(!t || !t.bed || !t.drip || !t.drone) { bad.push('region '+i+' has no room tone'); continue; }
       if(!(t.bed[1] > 0)) bad.push('region '+i+' has a silent bed');
+      if(!(t.drone[0] > 0 && t.drone[1] > 0)) bad.push('region '+i+' has no drone under it');
+      if(!(t.drone[0] < t.bed[0])) bad.push('region '+i+" drone is not under its bed");
       if(!(t.drip[1] > t.drip[0])) bad.push('region '+i+' has a backwards drip interval');
+      if(t.torch != null) bad.push('region '+i+' still carries a torch layer');
       tones.push(t.bed[0] + '/' + t.name);
     }
     if(new Set(tones).size < 6) bad.push('the regions nearly all sound the same: ' + tones.join(' '));
@@ -42,8 +45,12 @@ const {chromium}=require('playwright');
     if(ROOM.region !== 4) bad.push('floor 35 is in region '+ROOM.region+', not 4');
     if(!ROOM.bed) bad.push('the bed never started');
     if(!ROOM.drip) bad.push('the drips never started');
-    if(!ROOM.torch) bad.push('a torchlit region has no torch');
-    log.push(['in a fight', 'region '+ROOM.region+', bed+drip+torch']);
+    if(!ROOM.droneGain || ROOM.drone.length !== 2) bad.push('the drone never started');
+    if(!ROOM.lfo) bad.push('the bed does not breathe');
+    /* the crackle is gone on purpose: it read as something a CHARACTER was
+       doing rather than something the room was, and people said so */
+    if(ROOM.torch) bad.push('the torch crackle is back');
+    log.push(['in a fight', 'region '+ROOM.region+', bed+drone+drip, no crackle']);
 
     /* the slider reaches a sound that is ALREADY playing */
     await wait(1900);                       /* the bed fades in over 1.6s */

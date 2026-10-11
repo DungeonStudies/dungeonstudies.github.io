@@ -326,7 +326,7 @@ const {chromium}=require('playwright');
      ['the glossary','glossary'],['the syllabus','syllabus'],['infinity being endless','no bottom'],
      ['local versus','local versus']]
       .forEach(([what,word])=>{ if(tourText.indexOf(word) < 0) bad.push('the tour never mentions '+what); });
-    App.topTab='study'; App.studyView='settings'; render(); await wait(200);
+    App.topTab='settings'; render(); await wait(200);
     if(!document.querySelector('#exam-on')) bad.push('Settings has no exam mode switch');
     const helpTitles = [...document.querySelectorAll('.help-step h3')].map(h=>h.textContent);
     if(helpTitles.length !== TUTORIAL.length + 1)

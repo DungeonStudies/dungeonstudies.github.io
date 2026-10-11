@@ -37,7 +37,7 @@ const {chromium}=require('playwright');
     /* ---------- 2. setting up 3v3 ---------- */
     App.pvpView = 'local';
     openPvp();
-    if(App.topTab !== 'pvp') bad.push('the Versus tab did not open');
+    if(App.topTab !== 'pvp') bad.push('the Arena tab did not open');
     if(App.pvp.stage !== 'setup') bad.push('Same device did not open on its setup (stage '+App.pvp.stage+')');
     /* the bar has two sides and they are two different games */
     setPvpView('online');
@@ -45,7 +45,7 @@ const {chromium}=require('playwright');
     setPvpView('local');
     if(App.pvp.stage !== 'setup') bad.push('going back to Same device did not return to its setup');
     render();
-    if(document.querySelectorAll('.pvptabs button').length !== 2) bad.push('the Versus bar does not have two sides');
+    if(document.querySelectorAll('.arena-card').length !== 2) bad.push('the Arena does not offer both ways in');
     const pv = App.pvp;
     if(pv.players.length !== PVP_MIN) bad.push('a fresh match did not start with '+PVP_MIN+' players');
     const ids = pvpClassIds();
@@ -171,7 +171,7 @@ const {chromium}=require('playwright');
     log.push(['written in versus', written]);
 
     /* ---------- 8b. nothing to spend, nothing to carry in ---------- */
-    /* Versus is knowledge and how you play the turn, full stop. No potions,
+    /* The Arena is knowledge and how you play the turn, full stop. No potions,
        no artifacts, no hints, no gear - so none of those controls may ever
        appear on any screen of a match, and no stat may come from the save. */
     pv.stage = 'pass'; App.dungeonView='pvp'; render();

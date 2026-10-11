@@ -826,6 +826,27 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .px-btn.big{font-size:16px;padding:14px 26px;}
 
 .pvptabs button{font-size:14px;}
+/* THE CHOICE AT THE TOP OF THE ARENA.
+   Same device or online, made the size of the decision it is rather than two
+   word-sized pills that read as a filter. The one you are on is lit; the one
+   you are not still says plainly what it would give you. */
+.arena-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:12px;max-width:1000px;margin:0 auto 18px;}
+.arena-card{display:grid;gap:3px;padding:16px 18px;border-radius:14px;text-align:left;cursor:pointer;
+  background:linear-gradient(158deg,rgba(38,34,56,.72),rgba(18,16,30,.86));
+  border:1px solid var(--hairline);transition:transform .16s,border-color .16s,box-shadow .16s;}
+.arena-card:hover{transform:translateY(-2px);border-color:rgba(255,217,120,.5);}
+.arena-card.on{border-color:#ffd978;
+  background:radial-gradient(80% 60% at 50% 0%,rgba(232,182,76,.16),transparent 70%),
+             linear-gradient(158deg,rgba(44,38,62,.85),rgba(20,17,32,.9));
+  box-shadow:0 0 0 1px rgba(255,217,120,.35),0 22px 44px -26px #000;}
+.ac-icon{font-size:26px;line-height:1;margin-bottom:5px;}
+.ac-title{font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--gold);}
+.arena-card:not(.on) .ac-title{color:rgba(255,255,255,.72);}
+.ac-sub{font-size:12.5px;line-height:1.5;color:var(--text-dim);}
+.ac-foot{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-top:5px;}
+
 /* the class picker */
 .cp-back{position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(6,4,12,.82);backdrop-filter:blur(6px);}
@@ -4742,8 +4763,8 @@ const App = {
   profiles: {},              // realmId -> {character, run}
   profileId: null,           // which realm the DUNGEON is in
   discovered: {},            // shared across every realm
-  topTab: 'play', // play|study|characters
-  studyView: 'notes', // notes|upload|flashcards|quiz|settings
+  topTab: 'play', // play|pvp|study|characters|settings
+  studyView: 'notes', // notes|upload|flashcards|quiz
   dungeonView: 'select', // select|hub|battle|loot|checkpoint|death|victory|inventory|craft|index
   invView: 'backpack', // backpack|cores|stash|shrine
   indexTab: 'weapons', // weapons|armor|artifacts|bestiary
@@ -4759,7 +4780,7 @@ const App = {
   uploadQueue: null,
   quizCard: null,
   quizDiff: 'medium',
-  pvpView: 'local',          // which side of the Versus bar you are on
+  pvpView: 'local',          // which side of the Arena bar you are on
   examResult: null,          // the marked paper, while you are reading it
   pvp: null,                 // a local versus match, which owns its own world
 };
@@ -5392,18 +5413,32 @@ function heroSprite(classId, clip){
   return out + '</div>';
 }
 function classArt(classId, clip){ return heroSprite(classId || App.character.classId, clip); }
+/* WHERE A FRAME ACTUALLY GOES.
+   A fighter facing left wears a .sprite-flip wrapper that carries the mirror.
+   Writing the next frame into the BOX overwrites that wrapper, so the fighter
+   spins round for the length of the animation and snaps back on the next
+   render - which is exactly what people saw in the arena. Every clip swap
+   goes through here, and a box with no wrapper (the dungeon hero) is
+   unchanged, because then there is nothing to preserve. */
+function spriteHost(box){
+  if(!box) return null;
+  return box.classList && box.classList.contains('sprite-flip')
+    ? box : (box.querySelector('.sprite-flip') || box);
+}
 /* Run a short list of clips back to back, then settle on idle. */
 function heroClipSeq(host, classId, steps){
-  if(!host) return;
+  const h = spriteHost(host);
+  if(!h) return;
   let t = 0;
-  steps.forEach(([clip, ms])=>{ const at = t; setTimeout(()=>setArt(host, heroSprite(classId, clip)), at); t += ms; });
-  setTimeout(()=>setArt(host, heroSprite(classId, 'idle')), t);
+  steps.forEach(([clip, ms])=>{ const at = t; setTimeout(()=>setArt(h, heroSprite(classId, clip)), at); t += ms; });
+  setTimeout(()=>setArt(h, heroSprite(classId, 'idle')), t);
 }
 /* Swap the whole sprite over to another clip for a while, then fall back. */
 function playHeroClip(host, classId, clip, ms, thenClip){
-  if(!host) return;
-  setArt(host, heroSprite(classId, clip));
-  if(ms) setTimeout(()=>{ setArt(host, heroSprite(classId, thenClip || 'idle')); }, ms);
+  const h = spriteHost(host);
+  if(!h) return;
+  setArt(h, heroSprite(classId, clip));
+  if(ms) setTimeout(()=>{ setArt(h, heroSprite(classId, thenClip || 'idle')); }, ms);
 }
 
 
@@ -8098,9 +8133,12 @@ function render(){
   if(App.topTab==='study') root.appendChild(renderSubjectBar());
   const panel = document.createElement('div');
   panel.id = 'panel';
-  panel.className = App.topTab==='study' ? 'light' : 'dungeon';
+  /* Settings reads as a settings page, not a dungeon: it keeps Study's light
+     panel now that it has a tab of its own. */
+  panel.className = (App.topTab==='study' || App.topTab==='settings') ? 'light' : 'dungeon';
   root.appendChild(panel);
   if(App.topTab==='study') panel.appendChild(renderStudy());
+  else if(App.topTab==='settings') panel.appendChild(renderAiSettings());
   else if(App.topTab==='pvp') panel.appendChild(renderPvpTab());
   else if(App.topTab==='characters') panel.appendChild(renderCharactersScreen());
   else panel.appendChild(renderDungeon());
@@ -8117,9 +8155,9 @@ function render(){
   maybeStartTutorial();
   if(TUT.on) requestAnimationFrame(()=>paintTutorial());   /* it measures a live page */
 }
-/* Mid-fight there is nowhere else to be. Study and Characters come off the
-   bar while a floor is live, so the only way out of a fight is through it or
-   by fleeing - not by wandering off to reshuffle a skill tree. */
+/* Mid-fight there is nowhere else to be. Study, Characters and Settings come
+   off the bar while a floor is live, so the only way out of a fight is through
+   it or by fleeing - not by wandering off to reshuffle a skill tree. */
 function inTheDungeon(){
   return App.topTab === 'play' && App.run && App.run.active
     && ['battle','loot','explore','checkpoint','loading','party',
@@ -8128,18 +8166,19 @@ function inTheDungeon(){
 }
 function renderNav(){
   const nav = el(`<div class="shell-nav"><span class="brand">⚔ DUNGEON STUDIES</span></div>`);
-  /* Mid-match there is nowhere else to be either, so Versus keeps the bar to
-     itself the way a live floor does. */
-  const tabs = inAMatch() ? [['pvp','Versus']]
+  /* Mid-match there is nowhere else to be either, so the Arena keeps the bar
+     to itself the way a live floor does. */
+  const tabs = inAMatch() ? [['pvp','Arena']]
              : inTheDungeon() ? [['play','Play']]
-             : [['play','Play'],['pvp','Versus'],['study','Study'],['characters','Characters']];
+             : [['play','Play'],['pvp','Arena'],['study','Study'],
+                ['characters','Characters'],['settings','Settings']];
   tabs.forEach(([id,label])=>{
     const b = el(`<button class="navtab${App.topTab===id?' active':''}" data-tut="${id}tab">${label}</button>`);
     b.addEventListener('click', ()=>setTopTab(id));
     nav.appendChild(b);
   });
   if(inAMatch())
-    nav.appendChild(el(`<span class="navtab in-run">⚔ Versus — round ${App.pvp.round}</span>`));
+    nav.appendChild(el(`<span class="navtab in-run">⚔ Arena — round ${App.pvp.round}</span>`));
   else if(inTheDungeon()) nav.appendChild(el(`<span class="navtab in-run">⚔ In a run — floor ${App.run.floor}</span>`));
   const qs = el(`<div class="quickstats"></div>`);
   const prog = classProg();
@@ -8202,7 +8241,9 @@ function renderSubjectBar(){
 function renderStudy(){
   const wrap = el('<div></div>');
   const tabs = el(`<div class="studytabs"></div>`);
-  [['notes','Notes'],['upload','Upload to AI'],['flashcards','Flashcards'],['quiz','Quiz Practice'],['settings','Settings']].forEach(([id,label])=>{
+  /* Settings used to be the fifth pill here. It is a tab of its own now -
+     it was never about one subject, and it was buried behind one. */
+  [['notes','Notes'],['upload','Upload to AI'],['flashcards','Flashcards'],['quiz','Quiz Practice']].forEach(([id,label])=>{
     const b = el(`<button class="${App.studyView===id?'active':''}" data-tut="study${id}">${label}</button>`);
     b.addEventListener('click', ()=>{ App.studyView=id; render(); });
     tabs.appendChild(b);
@@ -8213,7 +8254,6 @@ function renderStudy(){
     case 'upload': body=renderUpload(); break;
     case 'flashcards': body=renderFlashcards(); break;
     case 'quiz': body=renderQuizPractice(); break;
-    case 'settings': body=renderAiSettings(); break;
     default: body=renderStudyNotes();
   }
   wrap.appendChild(body);
@@ -8665,10 +8705,10 @@ function renderHelpNumbers(){
     <h4>Hints and revives</h4>
     <p>${AD_HINTS_PER_RUN} hints and ${AD_REVIVES_PER_RUN} revive a run, each offered rather than taken, and both work without an ad if none is available. On an ordinary question a hint rules out a wrong answer and shows your own explanation with the answer struck out; on a marker it shows you a line off the marking guideline instead.</p>
 
-    <h4>Local Versus</h4>
-    <p>${PVP_MIN} to ${PVP_MAX} people on one device, any split you like. Everyone is built at level ${PVP_LEVEL} from their class alone — no gear, no skill tree, no potions, no artifacts, no hints, nothing to spend. A hit lands for ×${PVP_DMG} what it would underground, because six people taking turns is slower than one person descending and a match has to end. Versus never asks for a written answer, whatever exam mode is set to, and nothing that happens in it reaches your save.</p>
+    <h4>The Arena — same device</h4>
+    <p>${PVP_MIN} to ${PVP_MAX} people on one device, any split you like. Everyone is built at level ${PVP_LEVEL} from their class alone — no gear, no skill tree, no potions, no artifacts, no hints, nothing to spend. A hit lands for ×${PVP_DMG} what it would underground, because six people taking turns is slower than one person descending and a match has to end. The Arena never asks for a written answer, whatever exam mode is set to, and nothing that happens in it reaches your save.</p>
 
-    <h4>Online Versus</h4>
+    <h4>The Arena — online</h4>
     <p>Same rules as the local game, played from your own phones. One of you holds the room and reads out a code; everyone else types it in, and the two browsers talk straight to each other — there is no server in the middle and it costs nothing to run. The questions all come from the holder's notes, at the difficulty they set, so everybody is answering the same deck.</p>
     <p class="muted"><b>Nobody can see what class anybody else picked.</b> Other seats read <i>? ready</i> until the fight starts, the holder's screen included — their own browser is the one running the match, so it would otherwise be a free look at the other side. The holder's copy is also the one that decides what landed: a doctored page can lie to itself all it likes, and the answer never travels until the question is over.</p>
 
@@ -9525,7 +9565,7 @@ async function moveBarrage(els, cls, pose, skill, opts, fx){
   const box = els.playerSprite;
   const n = Math.max(2, fx.n || 3);
   const reach = g.gap*0.72 + 10;
-  setArt(box, heroSprite(cls, 'walk'));
+  setArt(spriteHost(box), heroSprite(cls, 'walk'));
   adv(box, {x: reach*0.72, ms:190});               /* close first - the first blow
                                                       has to land in range too */
   await sleep(200);
@@ -9533,11 +9573,11 @@ async function moveBarrage(els, cls, pose, skill, opts, fx){
   const pace = Math.max(70, Math.round(520/n));
   for(let i=0;i<n;i++){                            /* the feet keep their rhythm */
     adv(box, {x: reach*(0.74 + 0.26*(i+1)/n), y: (i%2 ? -3 : 0), ms:80});
-    setArt(box, heroSprite(cls, i % 2 ? 'thrust' : pose));
+    setArt(spriteHost(box), heroSprite(cls, i % 2 ? 'thrust' : pose));
     await sleep(pace);
   }
   await beats;
-  setArt(box, heroSprite(cls, 'idle'));
+  setArt(spriteHost(box), heroSprite(cls, 'idle'));
   adv(box, {x:0, y:0, ms:300});
   await sleep(305); stand(box);
   return true;
@@ -9835,14 +9875,19 @@ async function performSkillMove(els, cls, pose, skill, opts, fx){
     stand(els.playerSprite);
   }
 }
-async function playerAttackIntro(els, isSkill, opts, skill){
+async function playerAttackIntro(els, isSkill, opts, skill, classId){
   const fx = skillFx(skill);
-  const cls = App.character.classId;
+  /* WHOSE swing this is. Underground it is always your hero, so this read
+     App.character.classId and nobody noticed. In the arena the attacker is
+     whichever fighter's turn it is, and that read re-skinned them to your
+     dungeon hero for the length of the animation - a warrior swung as a mage
+     and turned back when it finished. Callers that have an attacker say so. */
+  const cls = classId || App.character.classId;
   /* A skill can override how its class fights: a mage's Staff Strike is a melee
      blow, not a spell, so it walks the staff in rather than casting on the spot. */
   const style = fx.style === 'melee'
-    ? (classCombat().style === 'rush' ? 'rush' : 'dash')
-    : classCombat().style;
+    ? (classCombat(cls).style === 'rush' ? 'rush' : 'dash')
+    : classCombat(cls).style;
   const pose = fx.pose || 'atk';
   stand(els.playerSprite);
   if(await performSkillMove(els, cls, pose, skill, opts, fx)) return;
@@ -11913,32 +11958,54 @@ const AMBIENT_VOICE = {
    Three layers, because that is what a room is:
      - a BED, a very low filtered rumble that never stops. It is the air in a
        space with no way out, and it is the layer you stop hearing after a
-       minute, which is exactly what it is for.
-     - DRIPS, somewhere behind you, at an irregular interval. Irregular is the
-       whole trick: a drip on a metronome is a clock, and a clock is annoying.
-     - a TORCH, close by, crackling. Only in the rooms that have fire in them.
+       minute, which is exactly what it is for. Its cutoff breathes very
+       slowly, so it moves like air rather than sitting there like a hiss.
+     - a DRONE under it, one detuned pair of sines so low you feel it more
+       than hear it. This is the layer that says "a long way underground"
+       rather than "a small dark cupboard".
+     - DRIPS, somewhere behind you, at an irregular interval, each one
+       answered by the room a beat later. Irregular is the whole trick: a drip
+       on a metronome is a clock, and a clock is annoying.
 
-   Each region gets its own mix, so the Ember Foundry roars where the
+   There used to be a fourth, a torch crackling close by, and it was wrong in
+   every room it played in: too near, too busy, and it read as something a
+   CHARACTER was doing rather than something the room was. It is gone. The
+   fire regions keep their heat in the bed, which is where it belongs.
+
+   Each region gets its own mix, so the Ember Foundry rumbles where the
    Frostbound Hollow only sighs, and the Abyssal Void has no air in it at all.
    ============================================================= */
 const ROOM_TONE = {
-  1:  {bed:[46, 0.030], drip:[2600, 7000], torch:0.9, name:'crypt'},
-  2:  {bed:[38, 0.034], drip:[1400, 3800], torch:0.3, name:'grotto'},
-  3:  {bed:[62, 0.044], drip:[5200,11000], torch:1.0, name:'foundry'},
-  4:  {bed:[34, 0.024], drip:[3400, 8200], torch:0.2, name:'hollow'},
-  5:  {bed:[44, 0.026], drip:[2200, 5600], torch:0.5, name:'thicket'},
-  6:  {bed:[50, 0.030], drip:[4200, 9500], torch:0.6, name:'ruins'},
-  7:  {bed:[58, 0.040], drip:[5000,11000], torch:1.0, name:'infernal'},
-  8:  {bed:[40, 0.028], drip:[3000, 7400], torch:0.4, name:'necropolis'},
-  9:  {bed:[66, 0.046], drip:[6000,13000], torch:1.0, name:'caldera'},
-  10: {bed:[28, 0.022], drip:[4800,10000], torch:0.0, name:'void'},
+  1:  {bed:[52, 0.034], drone:[41, 0.016], drip:[3400, 9000], name:'crypt'},
+  2:  {bed:[44, 0.038], drone:[33, 0.018], drip:[1800, 4600], name:'grotto'},
+  3:  {bed:[78, 0.050], drone:[52, 0.024], drip:[6000,13000], name:'foundry'},
+  4:  {bed:[38, 0.026], drone:[29, 0.013], drip:[4000, 9500], name:'hollow'},
+  5:  {bed:[50, 0.029], drone:[37, 0.012], drip:[2600, 6400], name:'thicket'},
+  6:  {bed:[56, 0.033], drone:[44, 0.015], drip:[4800,11000], name:'ruins'},
+  7:  {bed:[72, 0.046], drone:[49, 0.022], drip:[5600,12000], name:'infernal'},
+  8:  {bed:[46, 0.031], drone:[35, 0.017], drip:[3600, 8400], name:'necropolis'},
+  9:  {bed:[82, 0.052], drone:[55, 0.025], drip:[6800,14000], name:'caldera'},
+  10: {bed:[31, 0.024], drone:[24, 0.010], drip:[5600,12000], name:'void'},
 };
 function roomTone(region){ return ROOM_TONE[clamp(region||1, 1, 10)] || ROOM_TONE[1]; }
 
-let ROOM = {on:false, region:null, bed:null, bedGain:null, filt:null, drip:null, torch:null};
+let ROOM = {on:false, region:null, bed:null, bedGain:null, filt:null, drip:null,
+            torch:null, lfo:null, drone:[], droneGain:null};
 function roomStop(){
   if(ROOM.drip){ clearTimeout(ROOM.drip); ROOM.drip = null; }
   if(ROOM.torch){ clearTimeout(ROOM.torch); ROOM.torch = null; }
+  if(ROOM.lfo){ try{ ROOM.lfo.stop(); }catch(e){} ROOM.lfo = null; }
+  if(ROOM.droneGain && Sfx.ctx){
+    try{
+      const t = Sfx.ctx.currentTime;
+      ROOM.droneGain.gain.cancelScheduledValues(t);
+      ROOM.droneGain.gain.setValueAtTime(Math.max(0.0001, ROOM.droneGain.gain.value), t);
+      ROOM.droneGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      const os = ROOM.drone;
+      setTimeout(()=>os.forEach(o=>{ try{ o.stop(); }catch(e){} }), 600);
+    }catch(e){ ROOM.drone.forEach(o=>{ try{ o.stop(); }catch(e2){} }); }
+  }
+  ROOM.drone = []; ROOM.droneGain = null;
   if(ROOM.bedGain && Sfx.ctx){
     /* never cut a bed dead - that is a click, and a click is the one sound
        nobody forgives */
@@ -11978,37 +12045,51 @@ function roomStart(region){
     g.gain.exponentialRampToValueAtTime(Math.max(0.0001, tone.bed[1] * Sfx.level()), t + 1.6);
     src.connect(lp); lp.connect(g); g.connect(Sfx.master);
     src.start(t);
+    /* and it breathes: a 25-second sweep across the cutoff, far too slow to
+       hear as movement, just slow enough that the room is never quite still */
+    try{
+      const lfo = c.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.04;
+      const amt = c.createGain(); amt.gain.value = tone.bed[0] * 0.3;
+      lfo.connect(amt); amt.connect(lp.frequency);
+      lfo.start(t);
+      ROOM.lfo = lfo;
+    }catch(e){}
     ROOM.bed = src; ROOM.bedGain = g; ROOM.filt = lp;
   }catch(e){}
 
-  /* drips, at an interval that is never the same twice */
+  /* the drone: two sines a few cents apart, so they beat against each other
+     slowly instead of sitting as one dead tone */
+  try{
+    const dg = c.createGain();
+    dg.gain.setValueAtTime(0.0001, t);
+    dg.gain.exponentialRampToValueAtTime(Math.max(0.0001, tone.drone[1] * Sfx.level()), t + 2.4);
+    dg.connect(Sfx.master);
+    ROOM.drone = [0, 1].map(i=>{
+      const o = c.createOscillator(); o.type = 'sine';
+      o.frequency.value = tone.drone[0] * (i ? 1.006 : 1);
+      o.connect(dg); o.start(t);
+      return o;
+    });
+    ROOM.droneGain = dg;
+  }catch(e){}
+
+  /* drips, at an interval that is never the same twice. A drop of water is a
+     short plink that bends DOWN a little, not a long slide - the old one slid
+     an octave and a half and came out as a spring, which is what people kept
+     hearing and could not place. */
   const drip = ()=>{
     if(!ROOM.on) return;
     try{
       const at = Sfx.ctx.currentTime;
-      const f = 820 + Math.random()*900;
-      Sfx.blip(f, f*0.38, 0.09, 'sine', 0.045, at);
-      /* the room answering it, a beat later and quieter */
-      Sfx.blip(f*0.52, f*0.3, 0.22, 'sine', 0.014, at + 0.07);
+      const f = 1250 + Math.random()*900;
+      Sfx.blip(f, f*0.86, 0.055, 'sine', 0.040, at);          /* the drop */
+      Sfx.blip(f*0.50, f*0.47, 0.11, 'sine', 0.012, at+0.012); /* its body */
+      /* the room answering it, far enough back to be the room */
+      Sfx.blip(f*0.98, f*0.86, 0.05, 'sine', 0.010, at + 0.17);
     }catch(e){}
     ROOM.drip = setTimeout(drip, randInt(tone.drip[0], tone.drip[1]));
   };
-  ROOM.drip = setTimeout(drip, randInt(600, tone.drip[1]));
-
-  /* and a torch, where there is one */
-  if(tone.torch > 0){
-    const crackle = ()=>{
-      if(!ROOM.on) return;
-      try{
-        const at = Sfx.ctx.currentTime;
-        const k = 1 + Math.floor(Math.random()*3);
-        for(let i=0;i<k;i++) Sfx.noise(0.035 + Math.random()*0.04, 0.020 * tone.torch,
-                                       2200 + Math.random()*2600, 900, 2.2, at + i*0.055);
-      }catch(e){}
-      ROOM.torch = setTimeout(crackle, randInt(700, 2600));
-    };
-    ROOM.torch = setTimeout(crackle, randInt(300, 1400));
-  }
+  ROOM.drip = setTimeout(drip, randInt(1400, tone.drip[1]));
 }
 /* The volume slider has to reach a sound that is already playing. */
 function roomSyncLevel(){
@@ -12019,6 +12100,11 @@ function roomSyncLevel(){
     ROOM.bedGain.gain.cancelScheduledValues(t);
     ROOM.bedGain.gain.setValueAtTime(Math.max(0.0001, ROOM.bedGain.gain.value), t);
     ROOM.bedGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, tone.bed[1] * Sfx.level()), t + 0.25);
+    if(ROOM.droneGain){
+      ROOM.droneGain.gain.cancelScheduledValues(t);
+      ROOM.droneGain.gain.setValueAtTime(Math.max(0.0001, ROOM.droneGain.gain.value), t);
+      ROOM.droneGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, tone.drone[1] * Sfx.level()), t + 0.25);
+    }
   }catch(e){}
 }
 
@@ -13307,7 +13393,7 @@ const CLICK_VOICE = [
   ['.px-btn.red, .fr-drop, .pr-drop, [data-back], .ab-back', 'back'],
   ['.px-btn.gold, .btn:not(.secondary):not(.ghost), .ab-target, .diffbtn, .skillbtn', 'go'],
   ['.mcq-opt, .realm-card, .party-card, .hub-tile, .benchbtn, .item-card button, .friend-row button', 'pick'],
-  ['.navtab, .studytabs button, .subject-chip, input[type="checkbox"], select, .pr-team', 'tick'],
+  ['.navtab, .studytabs button, .subject-chip, input[type="checkbox"], select, .pr-team, .arena-card', 'tick'],
 ];
 function clickVoiceFor(node){
   for(const [sel, cue] of CLICK_VOICE){
@@ -14815,7 +14901,7 @@ function pvpSay(line){
 /* ---- the skills a versus hero gets ------------------------------------
    The three it learns plus the guard, and its base ultimate - which is the
    one everybody has before any skill tree opens, so no build is ahead. */
-/* Versus gives everybody their class's WHOLE tree kit - the three, the base
+/* The Arena gives everybody their class's WHOLE tree kit - the three, the base
    ultimate, every technique that class has - and nothing from outside it. No
    monster books, no evolved ultimates, nothing anybody had to grind for. It
    is the same reason nobody brings gear: the kit is the class, not the save.
@@ -15055,7 +15141,7 @@ async function pvpStrikeLocal(targetId){
   netPushState();
   render();
   const els = pvpEls(me, foe);
-  try{ await playerAttackIntro(els, (skill.cost||0) > 0, skill, skill); }catch(e){}
+  try{ await playerAttackIntro(els, (skill.cost||0) > 0, skill, skill, me.classId); }catch(e){}
   const hits = skill.hits || 1;
   let total = 0, anyCrit = false, guarded = false;
   for(let i = 0; i < hits && !foe.down; i++){
@@ -15518,7 +15604,7 @@ async function netHostApplyIntent(code, act){
   else if(act.t === 'ready' && pv.stage === 'pass') pvpAskQuestion();
 }
 /* ---- the screens -------------------------------------------------------- */
-/* ---- the Versus tab ----------------------------------------------------
+/* ---- the Arena tab ----------------------------------------------------
    Local and online are not two settings of one thing, they are two different
    games: one is a phone going round a table, the other is two houses. So they
    get a bar between them rather than a mode buried in a screen. */
@@ -15527,13 +15613,24 @@ function renderPvpTab(){
   const wrap = el('<div></div>');
   const live = inAMatch();
   if(!live){
-    const tabs = el(`<div class="studytabs pvptabs"></div>`);
-    [['local','🤝 Same device'],['online','🌐 Online with friends']].forEach(([id,label])=>{
-      const b = el(`<button class="${App.pvpView===id?'active':''}" data-tut="pvp${id}">${label}</button>`);
+    /* Two pills the size of a word were not a choice, they were a filter -
+       people did not see there was an online half at all. This is the choice,
+       made the size of the decision it is. */
+    const pick = el(`<div class="arena-pick"></div>`);
+    [['local','🤝','Same device','Two to six of you round one phone, passing it along',
+              PVP_MIN + '–' + PVP_MAX + ' players · 1v1, 2v2, 3v3'],
+     ['online','🌐','Online with friends','You open a room, they type in the code',
+              'Free · no server · no account']].forEach(([id,icon,title,sub,foot])=>{
+      const b = el(`<button class="arena-card${App.pvpView===id?' on':''}" data-tut="pvp${id}">
+        <span class="ac-icon">${icon}</span>
+        <span class="ac-title">${escapeHtml(title)}</span>
+        <span class="ac-sub">${escapeHtml(sub)}</span>
+        <span class="ac-foot">${escapeHtml(foot)}</span>
+      </button>`);
       b.addEventListener('click', ()=>setPvpView(id));
-      tabs.appendChild(b);
+      pick.appendChild(b);
     });
-    wrap.appendChild(tabs);
+    wrap.appendChild(pick);
   }
   wrap.appendChild(el('<div class="dg-wrap"></div>')).appendChild(renderPvp());
   return wrap;
@@ -15711,7 +15808,7 @@ function pvpRoomScreen(){
    Characters screen already shows the art, what the class is FOR and - just
    as loudly - what it is bad at, and that is exactly what somebody picking a
    fighter needs. So this is that, as an overlay, usable from either side of
-   the Versus bar. It closes on a pick, on Escape, and on a tap outside. */
+   the Arena bar. It closes on a pick, on Escape, and on a tap outside. */
 let CLASS_PICK = null;
 function openClassPicker(current, onPick){
   CLASS_PICK = {current, onPick};
@@ -15799,7 +15896,7 @@ function pvpSetupScreen(){
   const pv = App.pvp;
   const outer = document.createDocumentFragment();
   outer.appendChild(el(`<div class="px-panel">
-    <div class="dg-h2">Local Versus — ${PVP_MIN} to ${PVP_MAX} of you, one device</div>
+    <div class="dg-h2">The Arena — ${PVP_MIN} to ${PVP_MAX} of you, one device</div>
     <p class="pvp-intro">Everybody picks a class and a side, and then you take it in turns: answer the question, pick a move, pick who it lands on. Miss, and you have spent your turn. Between turns the screen hides everything and says whose go it is, so pass it along.</p>
     <p class="pvp-intro muted pvp-blurb">Everyone is built at <b>level ${PVP_LEVEL}</b>, same for all. <b>No gear, no skill tree, no potions, no artifacts, no hints</b> — there is nothing to spend and nothing to carry in. All that is left is whether you know the material and how you play the turn. Nothing in here touches your save either: no XP, no loot, nothing lost.</p>
   </div>`));
@@ -15854,7 +15951,7 @@ function pvpSetupScreen(){
     <select>${DIFF_IDS.map(id=>`<option value="${id}"${id===pv.diff?' selected':''}>${DIFFS[id].icon} ${DIFFS[id].label}</option>`).join('')}</select></label>`);
   diffSel.querySelector('select').addEventListener('change', e=>{ pv.diff = e.target.value; });
   ob.appendChild(diffSel);
-  opts.appendChild(el(`<p class="pvp-intro muted">Versus never asks for a written answer, whatever exam mode is set to — a twenty marker is half an hour of one person typing while everyone else watches.</p>`));
+  opts.appendChild(el(`<p class="pvp-intro muted">The Arena never asks for a written answer, whatever exam mode is set to — a twenty marker is half an hour of one person typing while everyone else watches.</p>`));
   outer.appendChild(opts);
 
   const go = el(`<div class="px-panel" style="text-align:center;"></div>`);
@@ -15931,7 +16028,7 @@ function pvpEls(attacker, defender){
    dungeon's own collapse keyframes do the work. */
 async function playHeroFall(box, p){
   if(!box) return sleep(200);
-  setArt(box.querySelector('.sprite-flip') || box, classArt(p.classId, 'hurt'));
+  setArt(spriteHost(box), classArt(p.classId, 'hurt'));
   box.classList.add('dth', 'die-fell');
   await sleep(DEATH_MS.fall + 120);
   box.classList.add('pvp-fallen');
@@ -16200,7 +16297,7 @@ const TUTORIAL = [
    text:"Gems come off bosses and out of chests. These are one-run blessings — extra health, free hints, a feather that catches you the first time you fall. Spend them on the run you mean to go deep on."},
 
   {tab:'pvp', view:'hub', at:'[data-tut="pvptab"]', side:'bottom', title:'And one for when somebody else is here',
-   text:"Versus, and there are two of them behind this tab. SAME DEVICE is two to six of you round one phone, split into two sides — one against one, two against two, three against three — and between every turn the screen hides everything and says whose go it is, so you pass it along. ONLINE is you and a friend in different houses: you open a room, it gives you a code, they type it in, and your two browsers talk to each other with nothing in between. Either way the questions come out of the same notes, everyone is built the same, there are no items and no hints and nothing to spend, and none of it touches your save. It is knowledge and how you play the turn, and nothing else."},
+   text:"The Arena, and there are two ways into it. SAME DEVICE is two to six of you round one phone, split into two sides — one against one, two against two, three against three — and between every turn the screen hides everything and says whose go it is, so you pass it along. ONLINE is you and a friend in different houses: you open a room, it gives you a code, they type it in, and your two browsers talk to each other with nothing in between. Either way the questions come out of the same notes, everyone is built the same, there are no items and no hints and nothing to spend, and none of it touches your save. It is knowledge and how you play the turn, and nothing else."},
 
   {tab:'study', view:'hub', at:'[data-tut="studytab"]', side:'bottom', title:'And this is the other half',
    text:"This is the part that is actually a revision app. Paste or upload what you are studying and it becomes the questions the dungeon asks you. There is a generator built in that costs nothing and works offline; if you have an AI key you can use that instead, and it writes better wrong answers."},
@@ -16211,14 +16308,14 @@ const TUTORIAL = [
   {tab:'study', view:'hub', at:'[data-tut="studyupload"]', side:'bottom', title:'It also keeps the words',
    text:"Every subject has words in it that are not ordinary English — arousal, adrenaline, hegemony, elasticity — and knowing the subject is mostly knowing those. They get pulled out as a glossary while your notes are read, and down there you get asked them the way you are actually asked them: here is the description, name it. On the same page you can load your SYLLABUS, which is a different thing from your notes. Your notes are what you wrote down; the syllabus is what the course says you have to know. Questions get written against both."},
 
-  {tab:'study', view:'hub', at:'[data-tut="studysettings"]', side:'bottom', title:'Now the part that will actually hurt',
+  {tab:'settings', view:'hub', at:'[data-tut="settingstab"]', side:'bottom', title:'Now the part that will actually hurt',
    text:"In here is a switch called EXAM MODE, and it is off until you turn it on. Off, you get asked what you have always been asked — pick the right one, type the short answer, name the term. On, it starts making you WRITE. Short answers mixed in on the way down, and every boss floor becomes a real extended response: a marker in the two, four, six, eight, twelve, fifteen, twenty family, written from your own notes and your own syllabus, with no options to pick from at all."},
 
-  {tab:'study', view:'hub', at:'[data-tut="studysettings"]', side:'bottom', title:'And the mark is the damage',
+  {tab:'settings', view:'hub', at:'[data-tut="settingstab"]', side:'bottom', title:'And the mark is the damage',
    text:"You write it, it gets marked against the guideline it was built with, and the mark you get IS your multiplier. Full marks is the hardest blow in the game. Half marks is an ordinary hit. A blank page does nothing at all and the thing in front of you takes its turn. There is no way to fake it — a multiple-choice question cannot tell knowing something from recognising it, and that difference is most of what an exam is for. If you have an AI key set it does the marking; if you have not, an offline marker reads it against the guideline and tells you plainly that that is what it did."},
 
-  {tab:'study', view:'hub', at:'[data-tut="studysettings"]', side:'bottom', title:'Volume, ads, and this again',
-   text:"The rest of Settings is in there too: the volume, the AI, and the ads. And this whole tour is written out on that page under Help — so if you want to read it again at your own pace instead of listening to me, that is where it is, with the numbers written out underneath it."},
+  {tab:'settings', view:'hub', at:'[data-tut="settingstab"]', side:'bottom', title:'Volume, ads, and this again',
+   text:"The rest of Settings is on this tab too: the volume, the AI, and the ads. It used to be buried as a fifth pill inside Study, which is no place for it — it was never about one subject. And this whole tour is written out on this page under Help — so if you want to read it again at your own pace instead of listening to me, that is where it is, with the numbers written out underneath it."},
 
   {tab:'play', view:'hub', title:'Go on, then',
    text:"That is everything. Pick your subject, pick a party, and go down. If you get stuck, I am in Settings under Help and I do not mind repeating myself."},
@@ -16240,7 +16337,7 @@ async function endTutorial(){
   TUT.seen = true;                 /* in memory as well as on disk, or it replays */
   clearTutorial();
   await setTutSeen(true);
-  if(TUT.fromHelp){ App.topTab = 'study'; App.studyView = 'settings'; }
+  if(TUT.fromHelp){ App.topTab = 'settings'; }
   render();
 }
 function tutStep(n){
