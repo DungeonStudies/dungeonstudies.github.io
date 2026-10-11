@@ -2780,32 +2780,28 @@ function fuzzyMatch(input, correct){
   return hit/bw.size >= 0.7;
 }
 
-/* ============================== AI CALL (Claude API, user-supplied key) ==============================
-   The key is typed in by the player, lives in this browser's local storage and
-   is sent to api.anthropic.com and nowhere else. Everything below is one
-   request: notes and questions come back together, as JSON the API guarantees
-   is valid, so there is no format to parse and nothing to go wrong halfway.
-   ==================================================================== */
-let API_KEY_CACHE = null;
-async function getApiKey(){
-  if(API_KEY_CACHE!==null) return API_KEY_CACHE;
-  API_KEY_CACHE = await Storage.get('apiKey','');
-  return API_KEY_CACHE;
-}
-async function setApiKey(k){ API_KEY_CACHE = k||''; await Storage.set('apiKey', API_KEY_CACHE); }
+/* ============================== TURNING NOTES INTO QUESTIONS ==============================
+   Two routes, both free. The built-in offline generator is the one that runs
+   unless somebody changes it: no key, no account, no connection, no cost,
+   ever. A local model on the player's own machine is the other, for anyone
+   who already runs one.
 
-/* The player pays for this, so the player picks. `think` and `effort` are not
-   the same switch: adaptive thinking lets the model work before it answers,
-   effort says how hard. Haiku takes neither and is here to be cheap. */
+   There was a third, a pay-as-you-go key with a card behind it, and it is
+   gone. It wrote better wrong answers than either of these, and that is the
+   honest cost of removing it - but asking a student to open a billing account
+   to play a game was never going to happen, and leaving the offer there just
+   made the game look like it wanted money.
+   ==================================================================== */
+/* NOTHING IN HERE COSTS A PLAYER ANYTHING.
+   There used to be three paid models and a field for a pay-as-you-go key with
+   a card behind it, which is a thing no student is going to set up to play a
+   game. Both free routes stay, and they are the only two: the built-in
+   offline generator, which needs nothing at all and is what runs unless you
+   change it, and a local model on your own machine for anyone who already has
+   one. */
 const AI_MODELS = [
   {id:'ollama', provider:'ollama', label:'Local model (Ollama) — free', think:false, effort:null,
-   blurb:'Runs on your own machine. No key, no bill, works offline. Needs Ollama installed, and the questions come out plainer than the ones below — small models are weakest at exactly the hard part, which is writing a wrong answer you would actually fall for.'},
-  {id:'claude-opus-5',    provider:'anthropic', label:'Claude Opus 5',    think:true,  effort:'high',
-   blurb:'The sharpest questions — real wrong answers, explanations that teach. Slowest, and the dearest per upload.'},
-  {id:'claude-sonnet-5',  provider:'anthropic', label:'Claude Sonnet 5',  think:true,  effort:'medium',
-   blurb:'The middle. Good questions at a fraction of the price.'},
-  {id:'claude-haiku-4-5', provider:'anthropic', label:'Claude Haiku 4.5', think:false, effort:null,
-   blurb:'Fast and cheap. Plainer questions, and fewer of them.'},
+   blurb:'Runs on your own machine. No key, no bill, works offline. Needs Ollama installed, and the questions come out plainer than the built-in generator does not — small models are weakest at exactly the hard part, which is writing a wrong answer you would actually fall for.'},
 ];
 const OLLAMA_DEFAULTS = {host:'http://localhost:11434', model:'llama3.1:8b'};
 let OLLAMA_CACHE = null;
@@ -2818,9 +2814,15 @@ async function setOllama(patch){
   OLLAMA_CACHE = Object.assign({}, await getOllama(), patch);
   await Storage.set('ollama', OLLAMA_CACHE);
 }
-const AI_MODEL_DEFAULT = 'claude-opus-5';
+/* The built-in generator is not a model and has no spec of its own beyond
+   this: it is what you get when nothing live is selected, which is also what
+   an old save asking for a paid model that no longer exists now falls back
+   to, quietly and correctly. */
+const AI_OFFLINE = {id:'__offline__', provider:'offline', label:'The built-in generator',
+                    think:false, effort:null, blurb:''};
+const AI_MODEL_DEFAULT = '__offline__';
 let AI_MODEL_CACHE = null;
-function aiModelSpec(id){ return AI_MODELS.find(m=>m.id===id) || AI_MODELS[0]; }
+function aiModelSpec(id){ return AI_MODELS.find(m=>m.id===id) || AI_OFFLINE; }
 async function getAiModel(){
   if(AI_MODEL_CACHE!==null) return AI_MODEL_CACHE;
   const saved = await Storage.get('aiModel','');
@@ -2867,68 +2869,14 @@ async function callOllama(req){
   return (data && data.message && data.message.content) ? data.message.content : '';
 }
 
+/* The only live provider left is the one running on the player's own
+   machine. Anything else throws, and throwing is how the built-in offline
+   generator gets its turn - every caller already falls back to it, which is
+   what made taking the paid half out a deletion rather than a rewrite. */
 async function callClaude(req){
-  const modelId = await getAiModel();
-  const spec = aiModelSpec(modelId);
+  const spec = aiModelSpec(await getAiModel());
   if(spec.provider === 'ollama') return callOllama(req);
-  const apiKey = await getApiKey();
-  if(!apiKey) throw new Error('No API key set — add one in Study → AI Settings to enable live AI notes/flashcards. Using the offline generator instead.');
-
-  const content = [];
-  (req.images||[]).forEach(img=>{
-    content.push({type:'image', source:{type:'base64', media_type:'image/png', data:img}});
-  });
-  content.push({type:'text', text:req.text});
-
-  const body = {
-    model: modelId,
-    /* 1400 was not enough for notes plus a dozen questions. The reply was being
-       cut off mid-sentence, the parse failed, and every chunk quietly fell back
-       to the offline generator - which is why the AI never seemed to be on. */
-    max_tokens: req.maxTokens || 16000,
-    messages: [{role:'user', content}]
-  };
-  if(req.system) body.system = req.system;
-  if(spec.think) body.thinking = {type:'adaptive'};
-  const oc = {};
-  if(spec.effort) oc.effort = spec.effort;
-  if(req.schema)  oc.format = {type:'json_schema', schema:req.schema};
-  if(Object.keys(oc).length) body.output_config = oc;
-
-  let wait = 0, lastErr = null;
-  for(let attempt=0; attempt<4; attempt++){
-    if(wait) await sleep(wait);
-    let res = null;
-    try{
-      res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{
-          'content-type':'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version':'2023-06-01',
-          'anthropic-dangerous-direct-browser-access':'true'
-        },
-        body: JSON.stringify(body)
-      });
-    }catch(err){
-      lastErr = new Error('network error: '+(err && err.message ? err.message : String(err)));
-      wait = 1500 * Math.pow(2, attempt);
-      continue;
-    }
-    if(res.ok){
-      const data = await res.json();
-      if(data.stop_reason === 'refusal') throw new Error('the model declined this material');
-      if(data.stop_reason === 'max_tokens') throw new Error('the reply was cut off — try smaller chunks');
-      const blk = (data.content||[]).find(b=>b.type==='text' && b.text);
-      return blk ? blk.text : '';
-    }
-    const t = await res.text().catch(()=>'');
-    lastErr = new Error('AI request failed ('+res.status+'): '+t.slice(0,180));
-    if(!AI_RETRY_STATUS.has(res.status)) break;
-    const ra = Number(res.headers.get('retry-after'));
-    wait = (ra > 0 && ra < 40) ? ra*1000 : 1500 * Math.pow(2, attempt) + Math.random()*400;
-  }
-  throw lastErr || new Error('AI call error');
+  throw new Error('No live AI set up - using the built-in offline generator instead.');
 }
 
 /* ---------------------------------------------------------------- the deck
@@ -4898,7 +4846,7 @@ async function loadAll(){
     if(placeholder) App.subjects = defaultSubjects();
     else App.subjects = defaultSubjects().concat(App.subjects);
   }
-  await getApiKey();
+
   await getAiModel();          /* so the settings screen can render the choice without waiting */
   await getAdCfg();            /* and so the hint button knows whether to offer itself */
   await getSound();            /* before anything has a chance to make a noise */
@@ -4967,10 +4915,11 @@ function activeSubject(){ return App.subjects.find(s=>s.id===App.activeSubjectId
    discovered, every subject with its notes and glossary and syllabus, the
    settings. Take it to another machine and you are where you left off.
 
-   What is deliberately NOT in it: your API key. A key is a credential and a
-   credential does not belong in a file you might email to yourself or drop
-   in a shared folder. The file says so where the key would have been, so
-   nobody wonders why they have to type it again.
+   What is deliberately NOT in it: any credential. There is nothing left in
+   the game that takes one, but the stripping stays - an old save file made
+   back when there was a key field still has that key sitting in it, and a
+   file somebody might email to themselves or drop in a shared folder is no
+   place for it. It comes out on the way in as well as on the way out.
    ================================================================== */
 /* The game is called Dungeon Studies now. The DECK format string is not
    renamed with it: every deck file anybody has ever exported carries the old
@@ -5001,7 +4950,7 @@ async function buildSaveFile(){
     /* a human-readable line at the top, so you can tell two files apart
        without opening a JSON viewer */
     summary: summariseSave(data),
-    note: 'Your API key is not in this file on purpose — it is a credential. You will set it again on the new device.',
+    note: 'No keys or credentials are in this file, on purpose. Nothing in the game needs one.',
     data,
   };
 }
@@ -8488,20 +8437,21 @@ function renderAiSettings(){
     <h2 style="margin-top:6px;">📝 Exam Mode</h2>
     <p class="muted">Off, the dungeon asks what it has always asked — multiple choice, typed recall, and the glossary: here is the description, name the term. On, it also makes you <b>write</b>. Short answers on the way down, and <b>every boss floor becomes a real extended response</b> — an HSC-shaped marker written from your own notes and syllabus, with no options to pick from. It gets marked against its guideline, and <b>the mark is your damage multiplier</b>: full marks is the hardest hit in the game, half marks is an ordinary one, a blank page does nothing and the boss takes its turn.</p>
     <div class="checkbox-row"><input type="checkbox" id="exam-on" ${examModeOn()?'checked':''}><label for="exam-on">Ask me to write (exam mode)</label></div>
-    <p class="muted" style="margin-top:8px;">Which markers you get is set by the difficulty you pick each round: <b>Easy</b> stops at 2–4 marks, <b>Medium</b> at 6, and <b>Hard</b> is the only one that will hand you an 8, 12, 15 or 20 marker. Marking uses whatever AI you have set up below — and if you have none, an offline marker reads it against the guideline instead and tells you it did.</p>
-    <h2 style="margin-top:6px;">The AI</h2>
-    <p class="muted">Pick where your uploads get analysed. <b>You do not need any of this</b> — with nothing set up, a built-in offline generator makes notes and questions on its own, for free, forever. It is just much plainer.</p>
-    <h2>Anthropic API Key</h2>
-    <div class="feedback-msg bad" style="margin:10px 0;">💳 <b>This one costs real money.</b> An Anthropic API key is a separate pay-as-you-go developer account with a card on it — it is <b>not</b> your Claude subscription, and a subscription does not come with one. Each upload is billed: very roughly 10p a chunk on Opus, 4p on Sonnet, 1p on Haiku, where a chunk is about 3,500 words. Leave this empty and you will never be charged anything.</div>
-    <input type="password" id="key-input" placeholder="sk-ant-..." value="${escapeHtml(API_KEY_CACHE||'')}">
-    <div class="row" style="margin-top:10px;"><button class="btn">Save Key</button><button class="btn ghost" id="clear-key">Clear Key</button></div>
-    <p class="muted" id="key-status" style="margin-top:10px;">${API_KEY_CACHE ? 'A key is currently set.' : 'No key set — using the offline generator.'}</p>
-    <h2 style="margin-top:20px;">Model</h2>
-    <p class="muted">The difference between these shows up almost entirely in the wrong answers. A good model writes three that a student who half-knows the material would actually pick; a weaker one writes three you can rule out at a glance, which hands you the question for free.</p>
+    <p class="muted" style="margin-top:8px;">Which markers you get is set by the difficulty you pick each round: <b>Easy</b> stops at 2–4 marks, <b>Medium</b> at 6, and <b>Hard</b> is the only one that will hand you an 8, 12, 15 or 20 marker. Marking is done by the built-in marker, which reads your answer against the guideline it was written with. No connection, no account, nothing to set up.</p>
+    <h2 style="margin-top:6px;">Where questions come from</h2>
+    <p class="muted"><b>Nothing here costs anything, and you do not have to touch it.</b> Out of the box a generator built into the game turns your notes into flashcards and questions on its own — free, offline, forever. If you happen to run a model on your own machine you can point the game at that instead, and it will write slightly better wrong answers. That is the whole choice.</p>
     <div id="model-list"></div>
     <div id="ollama-box"></div>
   </div>`);
   const list = c.querySelector('#model-list');
+  /* the built-in one is not in AI_MODELS: it is what runs when nothing else
+     is picked, so it belongs at the top of the list as the default rather
+     than hiding behind the absence of a choice */
+  const builtIn = el(`<label class="checkbox-row" style="align-items:flex-start;gap:10px;margin-top:8px;cursor:pointer;">
+    <input type="radio" name="aimodel" value="__offline__" ${(AI_MODEL_CACHE||AI_MODEL_DEFAULT)!=='ollama'?'checked':''} style="margin-top:3px;">
+    <span><b>The built-in generator — free, nothing to set up</b><br><span class="muted">Reads your notes on this device and writes the questions itself. No key, no account, no connection, no cost. Plainer than a real model, and it never asks you for anything.</span></span></label>`);
+  builtIn.querySelector('input').addEventListener('change', async ()=>{ await setAiModel('__offline__'); render(); });
+  list.appendChild(builtIn);
   AI_MODELS.forEach(m=>{
     const on = (AI_MODEL_CACHE || AI_MODEL_DEFAULT) === m.id;
     const row = el(`<label class="checkbox-row" style="align-items:flex-start;gap:10px;margin-top:8px;cursor:pointer;">
@@ -8540,18 +8490,11 @@ function renderAiSettings(){
       }catch(err){ msg.textContent = 'No luck: ' + err.message; }
     });
   }
-  c.querySelector('.btn').addEventListener('click', async ()=>{
-    const v = c.querySelector('#key-input').value.trim();
-    await setApiKey(v);
-    render();
-  });
   c.querySelector('#exam-on').addEventListener('change', async e=>{
     await setExamMode(e.target.checked);
     render();
   });
-  c.querySelector('#clear-key').addEventListener('click', async ()=>{ await setApiKey(''); render(); });
   c.appendChild(renderSoundSettings());
-  c.appendChild(renderAdSettings());
   c.appendChild(renderSaveFileSection());
   c.appendChild(renderHelpSection());
   return c;
@@ -8619,7 +8562,7 @@ function renderSaveFileSection(){
   const sum = wrap.querySelector('#save-sum');
   buildSaveFile().then(f=>{ sum.innerHTML = 'Right now that is: <b>' + escapeHtml(f.summary) + '</b>.'; }).catch(()=>{});
   wrap.querySelector('#save-export').addEventListener('click', async ()=>{
-    try{ msg.textContent = 'Exported \u2014 ' + (await exportSave()) + '. Your API key is not in it, on purpose.'; }
+    try{ msg.textContent = 'Exported \u2014 ' + (await exportSave()) + '.'; }
     catch(err){ msg.textContent = 'Could not export: ' + err.message; }
   });
   const input = wrap.querySelector('#save-file');
@@ -8733,48 +8676,6 @@ function renderHelpNumbers(){
     <p>No final boss and no bottom. Floor ${MAX_FLOOR} is the end of the first descent; after it the regions cycle, the bosses return with a new title, and the numbers keep climbing. Everywhere else still ends at ${MAX_FLOOR}.</p>
   </div>`);
 }
-function renderAdSettings(){
-  const cfg = AD_CFG_CACHE || AD_CFG_DEFAULTS;
-  const wrap = el(`<div style="margin-top:26px;border-top:1px solid rgba(139,124,246,.22);padding-top:18px;">
-    <h2>Ads</h2>
-    <p class="muted">Players are offered <b>${AD_HINTS_PER_RUN} hints</b> and <b>${AD_REVIVES_PER_RUN} revive</b> a run in exchange for watching something, and a short break plays when a run ends. Every one of them is opt-in and nothing costs the player money.</p>
-    <div class="feedback-msg bad" style="margin:10px 0;">📺 <b>An ad only pays if a network is actually serving it.</b> That needs an approved <b>Google AdSense</b> account, this game served from a domain added to that account, and <b>H5 Games Ads</b> granted on it — none of which can live inside this file. Until then the game plays its own placeholder so the mechanic still works, and nobody is told they are earning when they are not.</div>
-    <label class="checkbox-row" style="gap:10px;"><input type="checkbox" id="ad-on" ${cfg.enabled?'checked':''}><span>Offer ads at all</span></label>
-    <label style="display:block;margin-top:12px;">AdSense publisher ID
-      <input type="text" id="ad-client" placeholder="ca-pub-0000000000000000" value="${escapeHtml(cfg.client||'')}"></label>
-    <label class="checkbox-row" style="gap:10px;margin-top:12px;"><input type="checkbox" id="ad-test" ${cfg.test?'checked':''}><span>Test mode — shows Google's fake ads. <b>Turn this off once the site is live</b>, or you earn nothing.</span></label>
-    <label class="checkbox-row" style="gap:10px;margin-top:12px;"><input type="checkbox" id="ad-free" ${cfg.rewardWhenUnavailable?'checked':''}><span>Give the reward anyway when no ad is available. Keeps the game playable offline; turn it off to earn more and lose that.</span></label>
-    <p class="muted" id="ad-state" style="margin-top:12px;"></p>
-    <div class="row" style="margin-top:10px;"><button class="btn secondary" id="ad-try">Play a test break</button></div>
-  </div>`);
-  const state = wrap.querySelector('#ad-state');
-  const paint = ()=>{ const c2 = AD_CFG_CACHE || AD_CFG_DEFAULTS;
-    state.textContent = !c2.enabled ? 'Off — no ads are offered and nothing is requested.'
-      : !c2.client ? 'No publisher ID — the house placeholder plays and you earn nothing.'
-      : (c2.test ? 'Test mode — Google serves fake ads. You earn nothing until this is off.'
-                 : 'Live — requesting real ads for ' + c2.client + '.'); };
-  paint();
-  const save = async patch => { await setAdCfg(patch); paint(); };
-  wrap.querySelector('#ad-on').addEventListener('change', e=>save({enabled:e.target.checked}));
-  wrap.querySelector('#ad-test').addEventListener('change', e=>save({test:e.target.checked}));
-  wrap.querySelector('#ad-free').addEventListener('change', e=>save({rewardWhenUnavailable:e.target.checked}));
-  wrap.querySelector('#ad-client').addEventListener('change', e=>save({client:e.target.value.trim()}));
-  wrap.querySelector('#ad-try').addEventListener('click', async ()=>{
-    const got = await Ads.rewarded('test');
-    state.textContent = got ? 'That one would have paid — the reward was granted.'
-                            : 'Closed early — no reward, which is what a player would get.';
-  });
-  return wrap;
-}
-/* ============================== DECK FILES ==============================
-   A deck is a file. That is the whole point of this: the game stops caring
-   WHERE a question came from - this browser's AI, a local model, a friend, or
-   somebody who wrote the JSON by hand - and a deck you spent money or an
-   evening on can be backed up, moved to another machine, or handed to someone
-   sitting the same exam.
-   ==================================================================== */
-const DECK_FORMAT = 'study-dungeon-deck';
-const DECK_VERSION = 1;
 function deckToJson(subj){
   return JSON.stringify({
     format: DECK_FORMAT, version: DECK_VERSION,
@@ -10355,10 +10256,13 @@ function chooseDifficulty(id){
    The network is Google's H5 Games Ads, which is the one that pays a browser
    game per view. Three things it needs cannot live in this file: an approved
    AdSense account, this game served from a domain registered to that account,
-   and H5 Games Ads granted on it. Until a publisher ID is set in AI Settings
-   the game plays its own placeholder break instead, so the whole mechanic can
-   be played and tested - and the external script is never fetched, which is
-   also what keeps the offline build offline.
+   and H5 Games Ads granted on it. The publisher id ships in the file itself
+   (AD_CLIENT, at the top of this section's config) rather than being typed in
+   by whoever is playing - it has to be the same in every copy, or it only
+   exists in one person's browser and nobody else's game ever earns a penny.
+   Until it is filled in the game plays its own placeholder break instead, so
+   the whole mechanic can be played and tested - and the external script is
+   never fetched, which is also what keeps the offline build offline.
    --------------------------------------------------------------------- */
 const AD_FLOOR_EVERY = 30;      /* a break every N floors going down. At 30 that
                                    is three in a whole hundred-floor descent - a
@@ -10370,17 +10274,28 @@ const AD_LOAD_MS   = 6000;      /* a tag that has not arrived by now is not comi
 const AD_WATCH_MS  = 40000;     /* nor is an ad that never calls us back */
 const AD_SCRIPT    = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
 
-const AD_CFG_DEFAULTS = {client:'', test:true, enabled:true, rewardWhenUnavailable:true};
+/* ===================== WHOSE ADS THESE ARE =====================
+   This used to be a panel in Settings, which meant it was stored per browser
+   like everything else - so the publisher id existed only in the one browser
+   it was typed into. Every other player started from a blank one, no real ad
+   was ever requested for them, and the game earned nothing from anybody. It
+   was also, being in Settings, a page of the owner's configuration sitting in
+   every player's game for them to read and change.
+
+   So it ships WITH the game: one id, the same in every copy, nothing to set
+   up and nothing for a player to break. Fill AD_CLIENT in and that is the
+   whole job.
+
+   It is worth being plain that this id is not a secret and cannot be made
+   one. Google's own script reads it out of the page, so it is in the source
+   of every site on earth that runs AdSense. What it is not is a credential:
+   it cannot spend anything, and it cannot be used to take anything. */
+const AD_CLIENT = '';            /* <- 'ca-pub-0000000000000000' goes here */
+const AD_TEST   = false;         /* true serves Google's fake ads and earns nothing */
+const AD_CFG_DEFAULTS = {client:AD_CLIENT, test:AD_TEST, enabled:true, rewardWhenUnavailable:true};
 let AD_CFG_CACHE = null;
 async function getAdCfg(){
-  if(AD_CFG_CACHE) return AD_CFG_CACHE;
-  const saved = await Storage.get('adCfg', null);
-  AD_CFG_CACHE = Object.assign({}, AD_CFG_DEFAULTS, (saved && typeof saved==='object') ? saved : {});
-  return AD_CFG_CACHE;
-}
-async function setAdCfg(patch){
-  AD_CFG_CACHE = Object.assign({}, await getAdCfg(), patch||{});
-  await Storage.set('adCfg', AD_CFG_CACHE);
+  if(!AD_CFG_CACHE) AD_CFG_CACHE = Object.assign({}, AD_CFG_DEFAULTS);
   return AD_CFG_CACHE;
 }
 
@@ -13967,7 +13882,10 @@ function renderBattle(){
       <div class="namebar">${CLASSES[App.character.classId].name.toUpperCase()}${
         partyList().length>1 ? ` <span class="nb-slot">${partyList().indexOf(partyActiveId())+1}/${partyList().length}</span>` : ''}</div>
       <div class="hpbar-wrap"><div class="hpbar-outer"><div class="hpbar-bg"></div><div class="hpbar-fill"></div><div class="hpbar-num"></div></div></div>
-      <div class="sprite-box"></div>
+      <!-- the art lives in its own wrapper, not loose in the box. Clip swaps
+           write innerHTML, and anything else parked in the box - the charge
+           glow, for one - was being wiped out with every frame. -->
+      <div class="sprite-box"><div class="sprite-flip"></div></div>
       <div class="energy-row"></div>
     </div>
     <div class="combatant monster${m.isBoss?' boss':''}${m.isFinal?' smallboss':''}${m.evolved?' evolved':''}">
@@ -13999,7 +13917,7 @@ function renderBattle(){
   const lifeKind = m.gauntlet ? 'dungeon' : (outdoorKind(m.region, false) || 'dungeon');
   const life = sceneLifeLayer(lifeKind);
   if(life) scene.insertBefore(life, scene.querySelector('.scene-dark'));
-  setArt(scene.querySelector('.combatant.player .sprite-box'), classArt(App.character.classId));
+  setArt(scene.querySelector('.combatant.player .sprite-flip'), classArt(App.character.classId));
   setArt(scene.querySelector('.combatant.monster .sprite-flip'), monsterSprite(m));
   updateHpBar(scene.querySelector('.combatant.player .hpbar-fill'), scene.querySelector('.combatant.player .hpbar-num'), run.hp, st.maxHp);
   updateHpBar(scene.querySelector('.hp-monster .hpbar-fill'), scene.querySelector('.hp-monster .hpbar-num'), m.hp, m.maxHp);
@@ -16325,7 +16243,7 @@ const TUTORIAL = [
    text:"You write it, it gets marked against the guideline it was built with, and the mark you get IS your multiplier. Full marks is the hardest blow in the game. Half marks is an ordinary hit. A blank page does nothing at all and the thing in front of you takes its turn. There is no way to fake it — a multiple-choice question cannot tell knowing something from recognising it, and that difference is most of what an exam is for. If you have an AI key set it does the marking; if you have not, an offline marker reads it against the guideline and tells you plainly that that is what it did."},
 
   {tab:'settings', view:'hub', at:'[data-tut="settingstab"]', side:'bottom', title:'Volume, ads, and this again',
-   text:"The rest of Settings is on this tab too: the volume, the AI, and the ads. It used to be buried as a fifth pill inside Study, which is no place for it — it was never about one subject. And this whole tour is written out on this page under Help — so if you want to read it again at your own pace instead of listening to me, that is where it is, with the numbers written out underneath it."},
+   text:"The rest of Settings is on this tab too: the volume, your whole save as a file you can carry to another device, and where the questions get written. Nothing in here costs anything or asks you to sign up for anything — there is no account and nothing to buy. And this whole tour is written out on this page under Help — so if you want to read it again at your own pace instead of listening to me, that is where it is, with the numbers written out underneath it."},
 
   {tab:'play', view:'hub', title:'Go on, then',
    text:"That is everything. Pick your subject, pick a party, and go down. If you get stuck, I am in Settings under Help and I do not mind repeating myself."},

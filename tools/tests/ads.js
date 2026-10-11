@@ -142,10 +142,36 @@ const {chromium}=require('playwright');
     await submitAnswer('wrong a');
     if(floorBreaks || asked!==beforeQ) bad.push('answering a question played an ad');
 
-    /* 9. nothing is configured and nothing is claimed */
+    /* 9. WHOSE CONFIGURATION THIS IS.
+       The publisher id SHIPS now - it used to be typed into Settings, which
+       meant it lived in one browser's local storage and every other player
+       had a blank one, so no real ad was ever requested and the game earned
+       nothing from anybody. What must stay true either way: with no id the
+       game claims nothing and calls nobody, and with an id it is the SAME id
+       for everyone, so it cannot come from storage. */
     log.push(['configured', JSON.stringify(AD_CFG_CACHE)]);
-    if(AD_CFG_CACHE.client) bad.push('a publisher ID is baked into the shipped file');
-    if(Ads.ready()) bad.push('claims a live ad network with no publisher ID');
+    if(typeof AD_CLIENT !== 'string') bad.push('there is no shipped publisher id to fill in');
+    if(AD_CFG_CACHE.client !== AD_CLIENT) bad.push('the live config does not match the shipped one');
+    /* storage must not be able to change it - that was the whole bug */
+    await Storage.set('adCfg', {client:'ca-pub-9999999999999999', test:true});
+    AD_CFG_CACHE = null;
+    const after = await getAdCfg();
+    if(after.client !== AD_CLIENT) bad.push('a value in local storage overrode the shipped publisher id');
+    if(typeof setAdCfg === 'function') bad.push('players can still write an ad config');
+    if(!AD_CLIENT && Ads.ready()) bad.push('claims a live ad network with no publisher ID');
+
+    /* 10. and neither panel is in the game any more */
+    App.topTab = 'settings'; render();
+    const txt = (document.getElementById('panel')||{}).textContent || '';
+    if(/AdSense|publisher ID|Play a test break/i.test(txt)) bad.push('the ads panel is still in Settings');
+    if(/sk-ant|Anthropic API Key|costs real money/i.test(txt)) bad.push('the paid AI key is still in Settings');
+    if(document.querySelector('#key-input')) bad.push('there is still a key field');
+    if(!/built-in generator/i.test(txt)) bad.push('Settings does not say where questions come from');
+    /* the free routes, and only those */
+    if(AI_MODELS.some(m=>m.provider === 'anthropic')) bad.push('a paid model is still offered');
+    if(aiModelSpec('claude-opus-5').provider === 'anthropic') bad.push('an old save could still select a paid model');
+    if(aiModelSpec('__offline__').provider === 'ollama') bad.push('the default would try a local server nobody has');
+    log.push(['settings', 'no ads panel, no key field, ' + AI_MODELS.length + ' switchable model(s)']);
     return {bad, log};
   });
 
