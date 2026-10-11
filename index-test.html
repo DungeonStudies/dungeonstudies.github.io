@@ -794,8 +794,6 @@ body::after{ /* rock strata, chisel speckle, vignette */
   color:rgba(255,255,255,.55);}
 .rg-anyway:hover{color:rgba(255,255,255,.85);}
 
-
-
 /* ===================== LOCAL VERSUS =====================
    Two sides facing each other with a VS between them, which is the only
    layout this has ever needed. It has to work on a phone held by six people
@@ -15742,9 +15740,10 @@ function renderClassPicker(){
   return back;
 }
 
-/* Only your own class is ever shown. The wire withholds everyone else's,
-   and the host — who does hold the real list in memory — must not show it
-   either, or hosting would be a free look at the other side. */
+/* Only your own class is ever shown. The wire withholds everybody else's,
+   and the host - who does hold the real list in memory, because the host is
+   the one building the fighters out of it - must not show it either, or
+   holding the room would be a free look at the other side. */
 function hiddenClass(seat, mine){ return !mine; }
 /* Safe for a seat whose class we were never sent. */
 function classNameOf(cid){ return (CLASSES[cid] && CLASSES[cid].name) || 'Unchosen'; }

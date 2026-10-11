@@ -9,7 +9,9 @@ require('fs').mkdirSync(OUT,{recursive:true});
   const errs=[]; p.on('pageerror',e=>errs.push(String(e)));
   await p.goto('file:///home/user/Study-dungeon/index.html');
   await p.waitForTimeout(500);
-  await p.click('button:has-text("Study")');
+  /* scoped to the nav: "Play in portrait anyway" on the rotate gate also
+     contains the word Play, and it is in the DOM on a desktop, just hidden */
+  await p.click('.navtab:has-text("Study")');
   await p.waitForTimeout(250);
   await p.screenshot({path:OUT+'s_notes.png', fullPage:true});
   // add a subject through the UI
@@ -26,7 +28,7 @@ require('fs').mkdirSync(OUT,{recursive:true});
   await p.waitForTimeout(200);
   console.log('quiz hard:', (await p.textContent('#panel')).replace(/\s+/g,' ').slice(120,300));
   // back to Play: the new subject should be a realm
-  await p.click('button:has-text("Play")');
+  await p.click('.navtab:has-text("Play")');
   await p.waitForTimeout(250);
   console.log('realms:', await p.$$eval('.realm-card', es=>es.map(e=>e.textContent.replace(/\s+/g,' ').trim())));
   await p.screenshot({path:OUT+'s_select3.png', fullPage:true});
