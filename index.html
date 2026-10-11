@@ -827,25 +827,19 @@ body::after{ /* rock strata, chisel speckle, vignette */
 
 .pvptabs button{font-size:14px;}
 /* THE CHOICE AT THE TOP OF THE ARENA.
-   Same device or online, made the size of the decision it is rather than two
-   word-sized pills that read as a filter. The one you are on is lit; the one
-   you are not still says plainly what it would give you. */
-.arena-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-  gap:12px;max-width:1000px;margin:0 auto 18px;}
-.arena-card{display:grid;gap:3px;padding:16px 18px;border-radius:14px;text-align:left;cursor:pointer;
+   Two buttons, centred at the top. They used to be word-sized pills against
+   the left edge and read as a filter rather than a choice, so people did not
+   notice there was an online half at all. */
+.arena-pick{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:0 auto 20px;}
+.arena-card{padding:12px 26px;border-radius:12px;cursor:pointer;white-space:nowrap;
+  font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.08em;
+  text-transform:uppercase;color:rgba(255,255,255,.62);
   background:linear-gradient(158deg,rgba(38,34,56,.72),rgba(18,16,30,.86));
-  border:1px solid var(--hairline);transition:transform .16s,border-color .16s,box-shadow .16s;}
-.arena-card:hover{transform:translateY(-2px);border-color:rgba(255,217,120,.5);}
-.arena-card.on{border-color:#ffd978;
-  background:radial-gradient(80% 60% at 50% 0%,rgba(232,182,76,.16),transparent 70%),
-             linear-gradient(158deg,rgba(44,38,62,.85),rgba(20,17,32,.9));
-  box-shadow:0 0 0 1px rgba(255,217,120,.35),0 22px 44px -26px #000;}
-.ac-icon{font-size:26px;line-height:1;margin-bottom:5px;}
-.ac-title{font-family:var(--display);font-weight:700;font-size:16px;letter-spacing:.07em;
-  text-transform:uppercase;color:var(--gold);}
-.arena-card:not(.on) .ac-title{color:rgba(255,255,255,.72);}
-.ac-sub{font-size:12.5px;line-height:1.5;color:var(--text-dim);}
-.ac-foot{font-family:var(--mono);font-size:10.5px;color:var(--text-faint);margin-top:5px;}
+  border:1px solid var(--hairline);transition:transform .16s,border-color .16s,box-shadow .16s,color .16s;}
+.arena-card:hover{transform:translateY(-2px);border-color:rgba(255,217,120,.5);color:var(--text);}
+.arena-card.on{color:#121018;border-color:#ffd978;
+  background:linear-gradient(158deg,#ffe49a,#f0c24e);
+  box-shadow:0 0 26px -8px rgba(255,217,120,.55);}
 
 /* the class picker */
 .cp-back{position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;
@@ -15613,20 +15607,13 @@ function renderPvpTab(){
   const wrap = el('<div></div>');
   const live = inAMatch();
   if(!live){
-    /* Two pills the size of a word were not a choice, they were a filter -
-       people did not see there was an online half at all. This is the choice,
-       made the size of the decision it is. */
+    /* Two buttons, middle of the top of the screen. They were pills the size
+       of a word tucked against the left edge, which read as a filter rather
+       than a choice - people did not see there was an online half at all. */
     const pick = el(`<div class="arena-pick"></div>`);
-    [['local','🤝','Same device','Two to six of you round one phone, passing it along',
-              PVP_MIN + '–' + PVP_MAX + ' players · 1v1, 2v2, 3v3'],
-     ['online','🌐','Online with friends','You open a room, they type in the code',
-              'Free · no server · no account']].forEach(([id,icon,title,sub,foot])=>{
-      const b = el(`<button class="arena-card${App.pvpView===id?' on':''}" data-tut="pvp${id}">
-        <span class="ac-icon">${icon}</span>
-        <span class="ac-title">${escapeHtml(title)}</span>
-        <span class="ac-sub">${escapeHtml(sub)}</span>
-        <span class="ac-foot">${escapeHtml(foot)}</span>
-      </button>`);
+    [['local','🤝','Same device'],
+     ['online','🌐','Online']].forEach(([id,icon,label])=>{
+      const b = el(`<button class="arena-card${App.pvpView===id?' on':''}" data-tut="pvp${id}">${icon} ${escapeHtml(label)}</button>`);
       b.addEventListener('click', ()=>setPvpView(id));
       pick.appendChild(b);
     });
