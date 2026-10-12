@@ -863,6 +863,14 @@ body::after{ /* rock strata, chisel speckle, vignette */
   .swb-go{padding:5px 12px;font-size:11.5px;}
 }
 
+/* what a subject is made of, and the way to take a piece of it back out */
+.src-row{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;
+  border-radius:10px;border:1px solid var(--hairline);background:rgba(255,255,255,.03);}
+.src-name{flex:1;min-width:0;font-family:var(--ui);font-size:13.5px;font-weight:700;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.src-stat{font-family:var(--mono);font-size:11px;opacity:.65;white-space:nowrap;}
+.btn.small{padding:5px 11px;font-size:12px;}
+
 /* the class picker */
 .cp-back{position:fixed;inset:0;z-index:9800;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(6,4,12,.82);backdrop-filter:blur(6px);}
@@ -3012,7 +3020,7 @@ function parseStudyJson(raw){
    anything looser turns ordinary sentences into nonsense vocabulary. */
 function offlineTerms(text){
   const out = [], seen = new Set();
-  _sentencesOf(String(text||'')).forEach(sn=>{
+  _sentencesOf(cleanSource(text)).forEach(sn=>{
     const m = sn.match(/^\s*([A-Z][A-Za-z0-9'\-]*(?:\s+[a-z]{1,12}){0,3})\s+(?:is|are)\s+(?:a|an|the)?\s*(.{18,200})$/)
            || sn.match(/^\s*([A-Z][A-Za-z0-9'\-]*(?:\s+[A-Za-z]{1,14}){0,2})\s*[:\u2014\u2013-]\s+(.{18,200})$/);
     if(!m) return;
@@ -3021,6 +3029,9 @@ function offlineTerms(text){
     if(!key || key.length < 4 || seen.has(key) || term.split(/\s+/).length > 4) return;
     if(normText(def).indexOf(key) >= 0) return;
     if(OFFLINE_STOP.has(key) || /^(this|that|there|these|those|it|they|he|she|we|you)$/.test(key)) return;
+    /* the glossary is its own path to a question, so it needs its own gate -
+       a definition in pieces reads just as badly here as it does on a card */
+    if(!goodTerm(term) || badPhrase(def)) return;
     seen.add(key);
     out.push(makeTerm(term, def, ''));
   });
@@ -3106,11 +3117,149 @@ const DEFINE_RE   = /^\s*(?:the\s+)?([A-Z][A-Za-z0-9 '\-]{2,44}?)\s+(?:is|are)\s
 const LIST_RE     = /\b(?:consists? of|comprises?|includes?|is made up of|is divided into|are(?: the)?|stages?|steps?|types?|parts?|kinds?|categories)\s*:\s*([^.;]{10,150})|\b(?:consists? of|comprises?|includes?|is made up of|is divided into)\s+([^.;]{10,150})/i;
 
 function _sig(w){ return w && w.length > 2 && !STOPWORDS.has(w.toLowerCase()); }
+/* ===================== CLEANING UP WHAT CAME OUT OF A PDF =====================
+   Real study notes are not prose. They are TABLES, and a text extractor hands
+   you a table as a picture made of spaces: every column wraps onto the lines
+   below it, so one row of a techniques toolkit arrives as five lines, each
+   holding a fragment of four different cells.
+
+       Rhetorical          A question that       A question mark in a
+       question            doesn't expect an     statement-like
+                           answer                sentence
+
+   Read line by line - which is what this used to do - that is three
+   nonsense sentences. Read by COLUMN it is one good card: "Rhetorical
+   question" defined as "A question that doesn't expect an answer". A
+   techniques toolkit is almost entirely tables, so this is almost the whole
+   document, and it is the difference between questions worth answering and
+   the garbage this generator used to produce.
+
+   A blank line ends a row - that is the one reliable signal these extractions
+   give you. Everything between two blanks belongs to the same row, and each
+   column's fragments are joined in order.
+
+   Also handled here: a word split across a line end, and page furniture - the
+   bare date, the handle, a page number, a heading repeated on every page -
+   which was being harvested for wrong answers and is where "Oct" and "Don"
+   came from.
+   ========================================================================= */
+const FURNITURE_RE = /^\s*(?:page\s*\d+|\d+\s*(?:\/|of)\s*\d+|\d{1,3}|[A-Z][a-z]{2}\s+\d{1,2},?\s+\d{4}.*|[·•\s]*@\S+.*)\s*$/;
+/* the non-gap chunks of a line, each with the column it starts at */
+function _cellsOf(line){
+  const out = [];
+  const re = /\S(?:.*?\S)?(?=\s{3,}|$)/g;
+  let m;
+  while((m = re.exec(line)) !== null){ if(m[0]) out.push({at:m.index, text:m[0]}); }
+  return out;
+}
+function cleanSource(text){
+  let t = String(text || '').replace(/\r/g, '');
+  t = t.replace(/([A-Za-z])-\n[ \t]*([a-z])/g, '$1$2');       /* photo-\nsynthesis */
+  const seen = {};
+  const lines = t.split('\n').map(l=>{
+    const line = l.replace(/\s+$/, '');
+    if(!line.trim()) return '';
+    if(FURNITURE_RE.test(line)) return '';
+    const key = line.trim();
+    if(key.length < 60){ seen[key] = (seen[key] || 0) + 1; if(seen[key] > 2) return ''; }
+    return line;
+  });
+
+  const out = [];
+  let i = 0;
+  while(i < lines.length){
+    if(!lines[i]){ out.push(''); i++; continue; }
+    let j = i;
+    while(j < lines.length && lines[j]) j++;
+    const block = lines.slice(i, j);
+    const head = _cellsOf(block[0]);
+    if(head.length >= 2 && !/^\s*#{1,4}\s/.test(block[0])){
+      /* a table row: every line in the block feeds the column it sits under */
+      const cols = head.map(c=>[c.text]);
+      const starts = head.map(c=>c.at);
+      for(let k = 1; k < block.length; k++){
+        _cellsOf(block[k]).forEach(c=>{
+          let best = 0, dist = Infinity;
+          starts.forEach((st, n)=>{ const d = Math.abs(st - c.at); if(d < dist){ dist = d; best = n; } });
+          if(dist <= 8) cols[best].push(c.text);
+        });
+      }
+      /* a cell can break a word across its own wrap too: "non-" then "human" */
+      const joined = cols.map(parts=>parts.reduce((acc, bit)=>
+        /[A-Za-z]-$/.test(acc) && /^[a-z]/.test(bit) ? acc.slice(0, -1) + bit
+                                                     : (acc ? acc + ' ' + bit : bit), '')
+        .replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const label = joined[0] || '';
+      const body  = joined.slice(1).join(' — ');
+      if(label && body && wordCount(label) <= 6 && wordCount(body) >= 3){
+        out.push(label.replace(/[:–—-]\s*$/, '') + ': ' + body);
+      } else {
+        out.push(joined.join(' — '));
+      }
+    } else {
+      /* prose wraps too. A bullet that runs over two lines was being read as
+         two sentences, each cut mid-clause - which is where "name visual
+         techniques and explain their meaning, don't just" came from. Lines
+         are joined back into the bullet or paragraph they came from; a line
+         that STARTS a new bullet or a heading begins a new one. */
+      let buf = '';
+      const flush = ()=>{ if(buf.trim()) out.push(buf.trim()); buf = ''; };
+      block.forEach(l=>{
+        const starts = /^\s*(?:[-*\u2022\u00b7\u25cf]|\d+[.)]|#{1,4}\s)/.test(l);
+        if(starts || !buf) { flush(); buf = l.trim(); }
+        else buf += ' ' + l.trim();
+      });
+      flush();
+    }
+    out.push('');
+    i = j;
+  }
+  return out.join('\n');
+}
 function _sentencesOf(t){
   /* Heading lines are not sentences. Left in, they get glued to the line below
      and you end up blanking a word out of "# Photosynthesis Chlorophyll: ...". */
   const body = String(t||'').split(/\n/).filter(l=>!/^\s*#{1,4}\s/.test(l)).join('\n');
   return splitSentences(body).map(x=>x.trim()).filter(x=>{ const n = wordCount(x); return n>=4 && n<=46; });
+}
+/* IS THIS A TERM, OR A PIECE OF ONE.
+   "Non", "First", "End", "Whole", "Word" are all answers this generator used
+   to produce, each one the front half of a hyphenated word it had split. A
+   term is worth asking for when it stands on its own: long enough to mean
+   something, not a bare function word, and not the start of a sentence that
+   got cut off. */
+const TERM_STOPWORD = new Set(['the','a','an','and','or','but','if','so','of','in','on','at','to','for',
+  'with','from','by','as','is','are','was','were','be','been','this','that','these','those','it','its',
+  'non','first','second','third','end','whole','word','all','use','used','using','what','when','where',
+  'how','why','each','every','both','part','page','example','examples','note','notes']);
+/* WOULD A PERSON READ THIS AND KNOW WHAT IS BEING ASKED.
+   Text pulled out of a PDF arrives in pieces, and a piece makes a terrible
+   question and a worse option: "fear, mystery, loss Framing: Where the
+   subject sits" was being offered as an answer, which tells you nothing
+   except that the generator was not looking. A phrase has to read as one
+   thing - not a sentence that starts in the middle, not three table cells in
+   a row, not a dangling clause. Used on the cards AND on the glossary, which
+   is a separate path and was leaking its own mangled definitions. */
+function badPhrase(v){
+  const t = String(v == null ? '' : v).trim();
+  if(!t) return true;
+  if((t.match(/\u2014/g) || []).length >= 2) return true;      /* three cells joined */
+  if(/[,;:+(\u2013\u2014-]$/.test(t)) return true;             /* cut mid-clause */
+  if(/\b(?:and|or|the|a|an|with|of|to|for|but|if|just|not|than|then)$/i.test(t)) return true;
+  if(/[a-z]{2}[A-Z]/.test(t)) return true;                     /* "lossFraming" */
+  if(/\s[a-z][a-z'\u2019]*:\s/.test(t)) return true;           /* a label buried inside */
+  if(/^[a-z]/.test(t) && t.length > 24) return true;           /* starts mid-sentence */
+  return false;
+}
+function goodTerm(t){
+  const term = String(t || '').trim();
+  if(term.length < 4 || term.length > 48) return false;
+  const words = term.split(/\s+/);
+  if(words.length > 5) return false;
+  if(words.length === 1 && TERM_STOPWORD.has(term.toLowerCase())) return false;
+  if(words.length > 1 && TERM_STOPWORD.has(words[words.length-1].toLowerCase())) return false;
+  if(/\d/.test(term) && !/[A-Za-z]{3}/.test(term)) return false;     /* "3", "2025" */
+  return true;
 }
 /* Everything in the document that could be an answer, filed by type, so a
    wrong answer can be drawn from the same drawer as the right one. */
@@ -3184,7 +3333,7 @@ function pickDistractors(answer, pools, extra, ok){
   return out;
 }
 function localAnalyze(text){
-  const src = String(text||'');
+  const src = cleanSource(text);
   const pools = harvestPools(src);
   const sentences = _sentencesOf(src);
   if(!sentences.length) return {notes: src.slice(0,600), flashcards: [], terms: []};
@@ -3214,13 +3363,15 @@ function localAnalyze(text){
   const add = (front, back, idx, level, extra)=>{
     const key = normText(front);
     if(!front || !back || usedFront.has(key) || cards.length >= 20) return;
+    if(badPhrase(back) || badPhrase(front)) return;
     /* An option you can still read in the question is a free point: "splits
        _____ glucose molecule into two molecules of pyruvate" must not offer
        you "pyruvate". This is the single biggest giveaway a cloze question
        has, and it is the one thing the old generator did on every card. */
     const visible = ' ' + normText(front) + ' ';
     const clean = v => visible.indexOf(' ' + normText(v) + ' ') < 0
-                    && visible.indexOf(normText(v)) < 0;
+                    && visible.indexOf(normText(v)) < 0
+                    && !badPhrase(v);
     usedFront.add(key);
     cards.push(makeCard(front, back, {
       wrong: pickDistractors(back, pools, extra, clean),
@@ -3230,11 +3381,41 @@ function localAnalyze(text){
 
   /* term:definition lines, asked backwards - the definition is the prompt and
      the TERM is the answer, because a short answer is a markable one */
+  /* The separator must be a colon, or a dash WITH SPACE ROUND IT. It used to
+     accept a bare hyphen or en-dash, which split words down the middle:
+     "End-stopped line" became the term "End", "Non-linear" became "Non", and
+     "15 marks over 3-4 questions" became a term fourteen words long. A dash
+     inside a word is part of the word. */
+  const TERM_LINE = /^\s*([A-Z][A-Za-z0-9'’\-]*(?:\s+[A-Za-z0-9'’\-]+){0,4})\s*(?::|\s[–—-]\s)\s*(.{12,180})$/;
+  /* A table's HEADER row looks exactly like a term line once the cells are
+     joined - "Technique: What it is - How to spot it - Possible effects" -
+     and asking somebody to name the term defined by a list of column titles
+     is not a question. A real definition has at least one clause in it. */
+  const isHeaderRow = def => {
+    const parts = String(def).split(/\s—\s/);
+    return parts.length > 1 && !parts.some(x=>wordCount(x) >= 5);
+  };
+  /* and a cell the extractor cut mid-phrase is not a definition either */
+  const cutOff = def => /[,+(–—-]$/.test(String(def).trim())
+                     || /\b(?:and|or|the|a|an|with|of|to|for|but|if)$/i.test(String(def).trim());
+  const termCards = [];
   src.split(/\n+/).forEach(line=>{
-    const m = line.match(/^\s*([A-Z][A-Za-z0-9 '\-]{2,40})\s*[:\-–]\s*(.{10,160})$/);
+    const m = line.match(TERM_LINE);
     if(!m) return;
-    const idx = sentences.findIndex(sn=>sn.indexOf(m[2].slice(0,25)) >= 0);
-    add('Which term is this? “' + m[2].trim().replace(/[.;]$/,'') + '”', m[1].trim(), idx < 0 ? 0 : idx, 'recall');
+    const term = m[1].trim(), def = m[2].trim().replace(/[.;]$/, '');
+    if(!goodTerm(term) || wordCount(def) < 4) return;
+    if(isHeaderRow(def) || cutOff(def)) return;
+    termCards.push({term, def});
+  });
+  /* The wrong answers for "which term is this" must be OTHER TERMS out of the
+     same document. Drawing them from the general word pool gave options like
+     "fully" and "great" beside "Connotation", which is not a choice anybody
+     has to think about. */
+  const termNames = termCards.map(t=>t.term);
+  termCards.forEach(({term, def})=>{
+    const others = shuffle(termNames.filter(t=>normText(t) !== normText(term))).slice(0, 3);
+    const idx = sentences.findIndex(sn=>sn.indexOf(def.slice(0,25)) >= 0);
+    add('Which term is this? “' + def + '”', term, idx < 0 ? 0 : idx, 'recall', others);
   });
 
   sentences.forEach((sn, idx)=>{
@@ -7426,10 +7607,44 @@ function buildCardQuestion(pool, diffId, subj){
 }
 
 /* ---------- where this realm's questions come from ---------- */
+/* NOTES ARE A QUESTION SOURCE, NOT JUST SOMETHING TO READ.
+   A subject with notes and no flashcards used to yield no source at all, and
+   the dungeon quietly fell back to the demo deck - so somebody who pasted a
+   page of their own biology notes into the Notes box got asked what planet is
+   known as the Red Planet. The offline generator could always turn text into
+   cards; it had simply never been pointed at notes that arrived any way other
+   than through Upload. Now anything written in a subject becomes questions
+   about that subject, however it got there.
+
+   It runs once per distinct body of notes - the text it last read is
+   remembered, so editing notes regenerates and reopening the game does not. */
+function cardsFromNotes(subj){
+  if(!subj) return false;
+  const notes = String(subj.notes || '').trim();
+  if(notes.length < 40) return false;                      /* nothing to work with */
+  if(subj.flashcards && subj.flashcards.length) return false;
+  if(subj.notesReadFrom === notes) return false;           /* already tried this exact text */
+  subj.notesReadFrom = notes;
+  let made = false;
+  try{
+    const out = localAnalyze(notes) || {};
+    const cards = (out.flashcards || []).filter(c=>c && c.front && c.back);
+    if(cards.length){ subj.flashcards = (subj.flashcards || []).concat(cards); made = true; }
+    /* and the glossary, which is what the term questions and exam mode read */
+    const terms = (out.terms || []).filter(t=>t && t.term && t.def);
+    if(terms.length && !usableTerms(subj).length){
+      subj.terms = (subj.terms || []).concat(terms);
+      made = true;
+    }
+  }catch(e){}
+  if(made) saveSubjects();
+  return made;
+}
 function subjectSourcesFor(subj){
   const out = [];
   if(!subj) return out;
   if(subj.builtin==='multiplication') out.push({kind:'mul', subj});
+  cardsFromNotes(subj);
   if(subj.flashcards && subj.flashcards.length) out.push({kind:'cards', subj});
   return out;
 }
@@ -8293,13 +8508,18 @@ function renderUpload(){
     <h1>Upload to AI — ${escapeHtml(s.name)}</h1>
     <p class="muted">Upload .txt, .md, or .pdf files. Each chunk comes back as notes plus exam questions — each question with three wrong answers written for that question and a one-line explanation you get shown when you miss it. Those questions are what the monsters ask you. Works offline too: a local summarizer takes over if there is no AI key, or if the call fails.</p>
     <div class="row" style="margin:14px 0;"><input type="file" id="up-files" multiple accept=".txt,.md,.pdf"></div>
+    <h2>…or just paste it</h2>
+    <p class="muted">A whole set of notes, straight in — same treatment as a file, and it comes back as the questions the monsters ask you.</p>
+    <textarea id="up-paste" style="min-height:120px;" placeholder="Paste your notes here…"></textarea>
     <h2>Anything in particular?</h2>
     <textarea id="up-instruction" style="min-height:70px;" placeholder="${escapeHtml(FOCUS_PLACEHOLDER)}"></textarea>
-    <div class="checkbox-row" style="margin-top:10px;"><input type="checkbox" id="up-images"><label for="up-images">Also look at page images (PDF only — slower, describes diagrams/figures too; requires an AI key)</label></div>
+    <div class="checkbox-row" style="margin-top:10px;"><input type="checkbox" id="up-images"><label for="up-images">Also look at page images (PDF only — slower, and only a local model can read them)</label></div>
     <div class="row" style="margin-top:14px;">
       <button class="btn" id="up-start">Analyze &amp; Add to Notes</button>
       <button class="btn secondary" id="up-continue" style="display:none;">Continue Analyzing</button>
     </div>
+    <h2 style="margin-top:18px;">What this subject is made of</h2>
+    <div id="up-sources"></div>
     <h2 style="margin-top:18px;">Log</h2>
     <div class="log" id="up-log">Idle.</div>
 
@@ -8311,15 +8531,58 @@ function renderUpload(){
   </div>`);
   const logEl = c.querySelector('#up-log');
   function log(msg){ App.uploadLog.push(msg); logEl.textContent = App.uploadLog.join('\n'); logEl.scrollTop = logEl.scrollHeight; }
+  /* WHAT THIS SUBJECT IS MADE OF, and how to take any of it back out. */
+  const srcBox = c.querySelector('#up-sources');
+  function paintSources(){
+    srcBox.innerHTML = '';
+    const ups = s.uploads || [];
+    if(!ups.length){
+      srcBox.appendChild(el(`<p class="muted">Nothing uploaded yet. ${
+        (s.flashcards||[]).length ? 'There are ' + s.flashcards.length + ' question(s) here from before this subject started keeping track \u2014 the button below clears those.' : ''}</p>`));
+    }
+    ups.slice().sort((a,b)=>b.at-a.at).forEach(u=>{
+      const row = el(`<div class="src-row">
+        <span class="src-name">${escapeHtml(u.name)}</span>
+        <span class="src-stat">${u.cards} question${u.cards===1?'':'s'} \u00b7 ${u.terms} term${u.terms===1?'':'s'}</span>
+        <button class="btn danger small">Remove</button>
+      </div>`);
+      row.querySelector('button').addEventListener('click', async ()=>{
+        const r = await removeUpload(s, u.name);
+        log('Removed ' + u.name + ' \u2014 ' + r.cards + ' question(s) and ' + r.terms + ' term(s) gone'
+            + (r.notesKept ? '. Its notes were left alone because you have edited them since.' : '.'));
+        render();
+      });
+      srcBox.appendChild(row);
+    });
+    if((s.flashcards||[]).length || (s.notes||'').trim()){
+      const wipe = el(`<button class="btn ghost small" style="margin-top:10px;">Clear everything in ${escapeHtml(s.name)}</button>`);
+      wipe.addEventListener('click', async ()=>{
+        if(wipe.dataset.sure !== '1'){ wipe.dataset.sure = '1'; wipe.textContent = 'Really? This removes every note and question in ' + s.name; return; }
+        s.flashcards = []; s.terms = []; s.notes = ''; s.uploads = []; s.exams = []; s.notesReadFrom = '';
+        await saveSubjects();
+        log('Cleared everything in ' + s.name + '.');
+        render();
+      });
+      srcBox.appendChild(wipe);
+    }
+  }
+  paintSources();
+
   c.querySelector('#up-start').addEventListener('click', async ()=>{
     const files = c.querySelector('#up-files').files;
-    if(!files.length){ log('Pick at least one file first.'); return; }
+    const pasted = c.querySelector('#up-paste').value.trim();
+    if(!files.length && !pasted){ log('Pick a file, or paste your notes in the box above.'); return; }
     const instruction = c.querySelector('#up-instruction').value.trim();
     const useImages = c.querySelector('#up-images').checked;
-    App.uploadLog = []; log('Reading files...');
+    App.uploadLog = []; log(files.length ? 'Reading files...' : 'Reading what you pasted...');
     c.querySelector('#up-start').disabled = true;
     try{
       const chunks = [];
+      if(pasted){
+        const name = 'Pasted notes \u2014 ' + new Date().toLocaleString();
+        chunkWords(pasted, 3500).forEach(tc=>chunks.push({text:tc, images:[], source:name}));
+        log('\u2192 ' + chunkWords(pasted, 3500).length + ' chunk(s) of pasted text');
+      }
       for(const f of files){
         log('→ '+f.name);
         if(/\.pdf$/i.test(f.name)){
@@ -8391,6 +8654,37 @@ function renderUpload(){
   });
   return c;
 }
+/* TAKING AN UPLOAD BACK OUT.
+   Everything that came out of a file is tagged with that file's name, so this
+   can lift all of it: the cards, the glossary terms, and the chunks of notes
+   it appended. The notes are removed by matching the exact text that went in -
+   if you have since edited them by hand it will not match, and the honest
+   thing is to leave your editing alone and say the notes stayed. */
+async function removeUpload(subj, name){
+  if(!subj) return {cards:0, terms:0, notesKept:false};
+  const before = (subj.flashcards||[]).length;
+  subj.flashcards = (subj.flashcards||[]).filter(c=>c.src !== name);
+  const cards = before - subj.flashcards.length;
+  const tBefore = (subj.terms||[]).length;
+  subj.terms = (subj.terms||[]).filter(t=>t.src !== name);
+  const terms = tBefore - subj.terms.length;
+  const rec = (subj.uploads||[]).find(u=>u.name === name);
+  let notesKept = false;
+  if(rec){
+    (rec.notes||[]).forEach(chunk=>{
+      const txt = String(chunk||'').trim();
+      if(!txt) return;
+      if(String(subj.notes||'').indexOf(txt) >= 0){
+        subj.notes = subj.notes.replace(txt, '').replace(/\n{3,}/g, '\n\n').trim();
+      } else notesKept = true;
+    });
+  }
+  subj.uploads = (subj.uploads||[]).filter(u=>u.name !== name);
+  subj.exams = [];              /* written against material that has just left */
+  subj.notesReadFrom = '';      /* so what is left is read again */
+  await saveSubjects();
+  return {cards, terms, notesKept};
+}
 async function processUploadBatch(container, log){
   const q = App.uploadQueue;
   if(!q) return;
@@ -8411,13 +8705,33 @@ async function processUploadBatch(container, log){
       result = localAnalyze(ch.text);
       log('  ✓ offline analysis done ('+result.flashcards.length+' flashcards).');
     }
-    s.notes = (s.notes ? s.notes+'\n\n' : '') + (result.notes||'').trim();
+    /* EVERYTHING REMEMBERS WHERE IT CAME FROM.
+       Without this, one bad upload is permanent: sixty questions you did not
+       want, removable only one at a time or by deleting the whole subject and
+       starting again. Each card, term and chunk of notes carries the name of
+       the file it came out of, so the whole lot can be lifted back out. */
+    const src = String(ch.source || 'Pasted text');
+    const addedNotes = (result.notes||'').trim();
+    if(addedNotes) s.notes = (s.notes ? s.notes+'\n\n' : '') + addedNotes;
     const existingFronts = new Set(s.flashcards.map(c=>normText(c.front)));
-    (result.flashcards||[]).forEach(fc=>{ if(!existingFronts.has(normText(fc.front))){ s.flashcards.push(fc); existingFronts.add(normText(fc.front)); } });
+    let addedCards = 0;
+    (result.flashcards||[]).forEach(fc=>{
+      if(existingFronts.has(normText(fc.front))) return;
+      fc.src = src; s.flashcards.push(fc); existingFronts.add(normText(fc.front)); addedCards++;
+    });
     const haveTerm = new Set((s.terms||[]).map(t=>normText(t.term)));
     const newTerms = (result.terms && result.terms.length ? result.terms : offlineTerms(ch.text))
       .filter(t=>{ const k = normText(t.term); if(haveTerm.has(k)) return false; haveTerm.add(k); return true; });
-    if(newTerms.length){ s.terms = (s.terms||[]).concat(newTerms); log('  + '+newTerms.length+' term'+(newTerms.length===1?'':'s')+' for the glossary.'); }
+    if(newTerms.length){
+      newTerms.forEach(t=>{ t.src = src; });
+      s.terms = (s.terms||[]).concat(newTerms);
+      log('  + '+newTerms.length+' term'+(newTerms.length===1?'':'s')+' for the glossary.');
+    }
+    s.uploads = s.uploads || [];
+    let rec = s.uploads.find(u=>u.name === src);
+    if(!rec){ rec = {name:src, at:Date.now(), cards:0, terms:0, notes:[]}; s.uploads.push(rec); }
+    rec.cards += addedCards; rec.terms += newTerms.length;
+    if(addedNotes) rec.notes.push(addedNotes);
     await saveSubjects();
   }
   q.idx = end;
