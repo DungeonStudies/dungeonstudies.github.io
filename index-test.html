@@ -4833,6 +4833,227 @@ function scrubCountMaps(character){
    The Index (discoveries) is the ONE thing shared by every realm.
    ========================================================================== */
 const INFINITY_ID = '__infinity__';
+/* ===================== EALD — TECHNIQUES =====================
+   A hand-written deck, not a generated one. Every card here was read off a
+   real Module A techniques toolkit and typed out: the technique, what it is,
+   and what effect it creates. Nothing in it came from a parser.
+
+   The point of writing it by hand is the WRONG ANSWERS. They are drawn from
+   the same family as the right one, so a sound technique is offered against
+   other sound techniques and a camera angle against other camera angles.
+   "Enjambment or end-stopped line" is a question. "Enjambment or low angle"
+   is a free mark, and a generated deck cannot tell the difference.
+   ============================================================= */
+const EALD_FAMILIES = {
+  "Word-level techniques": [
+    ["Diction / word choice", "The writer's deliberate choice of words", "Creates a mood; shows the writer's attitude; makes an experience vivid"],
+    ["Connotation", "The feelings a word carries beyond its dictionary meaning — “home” vs “house”", "Shapes how we feel about a person or place; reveals hidden attitudes"],
+    ["Emotive language", "Words chosen to trigger strong feelings — “devastated”, “innocent”, “cruel”", "Makes the reader feel sympathy, anger or joy; builds empathy with the subject"],
+    ["High modality", "Words showing certainty: must, will, always, never", "Confident, forceful, urgent"],
+    ["Low modality", "Words showing uncertainty: might, perhaps, could", "Uncertain, hesitant, open"],
+    ["Tone", "The attitude or mood of the voice — nostalgic, bitter, hopeful, defiant", "Tells the reader how to feel about the experience"],
+    ["Colloquial language", "Informal, everyday speech — contractions, slang, “mate”, “gonna”", "Feels authentic and personal; shows a character's background"],
+    ["Formal language / jargon", "Technical or official words; specialist terms", "Shows expertise or authority; can feel cold or distant"],
+    ["Sensory language", "Words linked to the five senses — colours, sounds, textures, smells, tastes", "Places the reader inside the experience"],
+    ["Strong verbs", "Action words chosen for force — “grabbed” not “took”, “crept”, “surged”", "Creates energy, tension or movement"],
+    ["Personal pronouns", "I, we, you, they", "“I” is intimate, “we” is collective, “you” involves the reader, “they” creates distance"],
+    ["Inclusive language", "“we”, “us”, “our” — grouping the writer with the reader", "Builds a sense of shared experience and belonging"],
+    ["Tense", "Past, present or future verb forms", "Present: immediate and alive. Past: memory. Future: hope or promise"],
+    ["Rhetorical question", "A question that doesn't expect an answer", "Makes the reader think; challenges them; shows frustration or wonder"],
+    ["Imperative", "A command sentence starting with a verb — “Listen.” “Leave us alone.”", "Forceful, urgent and direct; puts the reader into action"],
+  ],
+  "Figurative language": [
+    ["Simile", "A comparison using “like” or “as” — “hurry about like ants”", "Makes something unfamiliar easy to picture"],
+    ["Metaphor", "Says something IS something else — “Time is a thief”", "Creates a strong image; links an experience to a bigger idea"],
+    ["Extended metaphor", "A metaphor that continues across several lines", "Builds a sustained idea; gives the text unity"],
+    ["Personification", "Giving human qualities to non-human things — “the trees making their own music”", "Makes nature or objects feel alive; creates connection or threat"],
+    ["Symbolism", "An object, colour or action standing for a bigger idea — a dying fire = a dying culture", "Adds deeper meaning; links small details to big themes"],
+    ["Motif", "A symbol or image that repeats through a text", "Builds a theme across the text; ties it together"],
+    ["Imagery", "Language appealing to sight, sound, touch, smell or taste — “the sting of tears”", "Immerses the reader; makes the experience feel real"],
+    ["Hyperbole", "Deliberate exaggeration — “a thousand thousand camp fires”", "Emphasises the size or intensity of a feeling"],
+    ["Understatement", "Making something seem smaller than it is — “a bit of a problem” about a disaster", "Creates irony or dark humour; shows restraint"],
+    ["Verbal irony", "Saying the opposite of what you mean — “Great weather” in a storm", "Shows sarcasm, bitterness or humour"],
+    ["Situational irony", "When the outcome is the opposite of what we expect — a fire station burns down", "Highlights unfairness or absurdity"],
+    ["Dramatic irony", "The audience knows something a character does not", "Builds tension, sympathy or dread"],
+    ["Paradox", "A statement that seems contradictory but reveals a truth — “lonely in teeming city crowds”", "Makes the reader stop and think; reveals complexity in human experience"],
+    ["Oxymoron", "Two opposite words side by side — “bittersweet”, “deafening silence”", "Shows mixed or complex emotions"],
+    ["Juxtaposition", "Placing two contrasting ideas close together — a rich suburb next to a slum", "Highlights differences; makes each idea stronger by contrast"],
+    ["Allusion", "An indirect reference to a famous story, myth or event", "Borrows the weight of another story"],
+  ],
+  "Sound techniques": [
+    ["Alliteration", "A repeated consonant sound at the START of nearby words — “lonely and lost”", "Makes a phrase memorable; soft sounds feel calm, hard sounds feel harsh"],
+    ["Sibilance", "Repeated “s” or “sh” sounds — “subdued and silent”", "Feels quiet and hushed, or sinister and hissing"],
+    ["Assonance", "Repeated VOWEL sounds inside words — “cold, old road”", "Creates musical flow; long vowels slow the pace"],
+    ["Consonance", "Repeated consonant sounds inside or at the END of words — “pitter patter”", "Adds rhythm and unity"],
+    ["Onomatopoeia", "Words that sound like what they mean — “click”, “crash”, “buzz”", "Brings the scene to life; the reader hears it"],
+    ["Rhyme", "Words with matching end sounds — night / light", "Gives order and musicality; can feel song-like or childlike"],
+    ["Free verse", "No regular rhyme or rhythm", "Feels natural, like speech or thought; freedom from rules"],
+    ["Rhythm / metre", "The beat of the lines, regular or broken", "Regular: calm and controlled. Broken: tension, chaos, emotion"],
+    ["Cacophony", "Harsh, clashing sounds — “crack, grind, scrape”", "Creates discomfort, violence or chaos"],
+    ["Euphony", "Smooth, pleasant sounds — soft vowels and l, m, n", "Creates peace, beauty and comfort"],
+  ],
+  "Repetition": [
+    ["Repetition", "Repeating a word or phrase — “All gone, all gone”", "Emphasises a key idea; makes it memorable"],
+    ["Anaphora", "Repeating words at the START of lines or sentences — “We are… We are…”", "Builds momentum like a chant or speech; creates unity"],
+    ["Epistrophe", "Repeating words at the END of lines or sentences — “…is gone. …is gone.”", "Creates a heavy, final feeling, like a bell tolling"],
+    ["Refrain", "A line repeated through a poem or song, like a chorus", "Ties the text together; returns to the central idea"],
+    ["Polyptoton", "The same root word in different forms — “gone” / “going”", "Shows change or development of an idea"],
+    ["Tricolon", "A list of three — “I came, I saw, I conquered”", "Sounds complete, balanced and persuasive"],
+    ["Parallelism", "Matching grammar structure in a series — “No walls about me, / The stars over me”", "Creates balance and rhythm; links ideas"],
+  ],
+  "Sentences and lines": [
+    ["Short / minor sentence", "A very short sentence, or a fragment", "Shock, emphasis, finality, tension; makes the reader pause"],
+    ["Long / complex sentence", "Many clauses joined together", "Builds detail and flow; a rush of thought that can feel overwhelming"],
+    ["Listing", "A series of items one after another", "Shows quantity or abundance; builds intensity"],
+    ["Asyndeton", "A list with NO “and”", "Fast, urgent, overwhelming"],
+    ["Polysyndeton", "A list with MANY “and”s", "Slows the pace; makes things feel endless or exhausting"],
+    ["Enjambment", "A sentence runs past the end of a poetic line", "Creates flow or suspense; the line break stresses the next word"],
+    ["Caesura", "A pause in the MIDDLE of a line, from a full stop, comma or dash", "Stops the reader; mirrors hesitation, shock or emotion"],
+    ["End-stopped line", "A line that ends with punctuation", "Feels complete, controlled or final"],
+    ["Ellipsis", "Words left out or trailing off…", "Hesitation, suspense, an unfinished thought"],
+    ["Dash", "A sudden break or added thought", "Interruption, surprise, emphasis"],
+    ["Italics", "Slanted text", "A shift in voice or thoughts, emphasis, or a foreign word"],
+    ["Dialogue", "Characters' exact words in quotation marks", "Reveals personality; makes the scene immediate"],
+  ],
+  "Whole-text structure": [
+    ["Circular structure", "The ending returns to the beginning", "Shows nothing has changed, or a lesson completed; creates unity"],
+    ["Chronological structure", "Events in time order", "Clear, natural progress; shows growth or change"],
+    ["Non-linear structure", "Jumps between past and present", "Shows how memory shapes the present"],
+    ["Stanza break", "A gap between sections", "Signals a shift in time, place, mood or idea"],
+    ["Volta", "A turning point: a shift in tone or argument", "Shows a change in feeling or a new realisation"],
+  ],
+  "Narrative and perspective": [
+    ["First-person narration", "An “I” narrator telling their own story", "Intimate; we see their thoughts directly; builds empathy"],
+    ["Second-person narration", "The reader or another person addressed as “you”", "Pulls the reader into the experience; feels urgent or personal"],
+    ["Third-person limited", "A “he/she” narrator following ONE character's thoughts", "Some closeness, but more distance than “I”"],
+    ["Third-person omniscient", "A “he/she” narrator who knows EVERYONE's thoughts", "A big-picture view; can show contrasts between characters"],
+    ["Characterisation", "How a writer builds a character through actions, speech, appearance and thoughts", "Reveals human qualities: courage, kindness, fear, pride"],
+    ["Setting", "Time and place", "Creates mood; reflects the character's feelings; shapes their experience"],
+    ["Stream of consciousness", "A flow of thoughts with little structure", "Shows the mind as it really works: messy, emotional, real"],
+    ["Internal monologue", "A character's private thoughts", "Reveals hidden emotions or conflicts"],
+    ["Flashback", "A jump back to an earlier time", "Shows how the past shapes the present"],
+    ["Reflective voice", "A narrator looking back and thinking about what it meant", "Shows growth, insight and lessons learned"],
+    ["Unreliable narrator", "A narrator we cannot fully trust", "Makes the reader question truth; shows bias or self-deception"],
+    ["Anecdote", "A short personal story", "Makes ideas relatable and real"],
+    ["Epiphany", "A sudden moment of realisation", "Shows a turning point; a key insight into human experience"],
+  ],
+  "Visual techniques": [
+    ["Salience", "The thing your eye goes to first — biggest, brightest or sharpest", "Shows what matters most in the image"],
+    ["Vectors", "Lines that lead your eye — a road, a pointing arm, a gaze", "Guide the viewer to the key idea; show direction or connection"],
+    ["Demand gaze", "The subject looks straight out at you", "Confronts the viewer; creates a personal connection"],
+    ["Offer gaze", "The subject looks away, not at the viewer", "Lets us observe; feels reflective or private"],
+    ["Warm colour", "Reds, oranges and yellows", "Energy, love, danger, passion"],
+    ["Cool colour", "Blues, greens and greys", "Calm, sadness, isolation"],
+    ["Lighting / contrast", "Light against shadow; bright patches", "Light: hope, truth, focus. Darkness: fear, mystery, loss"],
+    ["Framing", "Where the subject sits — borders, doorways, windows", "Can trap or isolate the subject; focuses attention"],
+    ["High angle", "The camera looks DOWN on the subject", "The subject looks small, weak or vulnerable"],
+    ["Low angle", "The camera looks UP at the subject", "The subject looks powerful or heroic"],
+    ["Eye level", "The camera is straight on", "Equal and relatable"],
+    ["Close-up", "We are very near the subject", "Emotion and intimacy"],
+    ["Long shot", "We are far from the subject", "Setting, isolation, smallness in a big world"],
+    ["Negative space", "Empty areas around the subject", "Isolation, loneliness, calm or freedom"],
+    ["Typography", "The size, style and colour of text", "Bold: urgency. Handwritten: personal and warm. Formal: authority"],
+  ],
+  "Persuasive techniques": [
+    ["Direct address", "Speaking to “you”", "Involves the reader personally"],
+    ["Personal anecdote", "A short story from the writer's own life", "Makes the argument real and relatable; builds trust"],
+    ["Expert opinion", "Words quoted from an authority", "Adds credibility"],
+    ["Statistics", "Numbers and data", "Makes claims seem objective and convincing"],
+    ["Pathos", "An appeal to the reader's feelings", "Builds sympathy, anger or hope"],
+    ["Logos", "An appeal through reasons and evidence", "Convinces through reason"],
+    ["Ethos", "Showing the writer is trustworthy", "Builds credibility"],
+  ],
+};
+const EALD_CONFUSED = [
+  ["What is the difference between a simile and a metaphor?", "A simile uses “like” or “as”; a metaphor does not", ["A metaphor uses “like” or “as”; a simile does not", "A simile compares people, a metaphor compares objects", "A metaphor is longer than a simile"]],
+  ["What is the difference between alliteration and sibilance?", "Sibilance is only “s” and “sh” sounds; alliteration is any repeated starting consonant", ["Alliteration is only “s” sounds; sibilance is any consonant", "Sibilance repeats vowels; alliteration repeats consonants", "Alliteration is at the end of words; sibilance is at the start"]],
+  ["Which is right: the poet implies, or the poet infers?", "The poet implies — writers imply, readers infer", ["The poet infers — writers infer, readers imply", "Both mean the same thing", "Neither; poets suggest"]],
+  ["Why is “imperative tone” wrong?", "An imperative is a sentence type (a command); tone is an attitude", ["Because imperatives have no tone", "Because tone only applies to poetry", "Because imperative is a visual technique"]],
+  ["What is the difference between juxtaposition and paradox?", "Juxtaposition places two things side by side; a paradox is a statement that seems impossible but is true", ["A paradox places two things side by side; juxtaposition is a contradiction", "Juxtaposition is visual; paradox is written", "They mean the same thing"]],
+  ["What is wrong with calling deliberate repetition “tautology”?", "Tautology is a FAULT; for deliberate repetition use anaphora, epistrophe or refrain", ["Nothing — they mean the same thing", "Tautology only applies to speech", "Tautology is a visual technique"]],
+  ["What is the difference between an allusion and a reference?", "An allusion is INDIRECT, to a famous story, myth or event; naming something directly is just a reference", ["A reference is indirect; an allusion is direct", "An allusion is always to the Bible", "A reference is only used in nonfiction"]],
+  ["What is the difference between personification and anthropomorphism?", "Personification gives human traits in language; anthropomorphism makes animals act fully human", ["Anthropomorphism gives human traits in language; personification makes animals human", "Personification only applies to weather", "They mean the same thing"]],
+  ["Which is the noun: effect or affect?", "Effect — “the effect is…”. Affect is the verb: “it affects the reader”", ["Affect — “the affect is…”. Effect is the verb", "Both are nouns", "Both are verbs"]],
+  ["What is the difference between modality and mood?", "Modality is certainty (must / might); mood is the atmosphere of the text", ["Mood is certainty; modality is atmosphere", "Modality only applies to poetry", "They mean the same thing"]],
+];
+const EALD_EXAM = [
+  ["What are the three parts every Part A answer needs?", "Technique, example, effect", ["Introduction, body, conclusion", "Quote, paraphrase, opinion", "Point, evidence, summary"]],
+  ["In the TEE formula, what goes in your FIRST sentence?", "The point — answer the question using its key words", ["The technique you found", "A quotation from the text", "Your personal opinion of the text"]],
+  ["Naming a technique with no effect earns what?", "Almost nothing — the effect is what the marks are for", ["Full marks, if the technique is correct", "Half marks automatically", "More marks than an effect with no technique"]],
+  ["How long is Part A, and for how many marks?", "About 30 minutes for 15 marks over 3–4 questions", ["About 60 minutes for 20 marks", "About 15 minutes for 10 marks", "About 45 minutes for 25 marks"]],
+  ["For a 2-mark question, what should you write?", "1 point and 1 example with its effect — 2–3 sentences, about 3 minutes", ["Three points with three examples", "A full paragraph of at least 10 sentences", "Just name the technique"]],
+  ["For a 5–6 mark question, what should you write?", "2–3 points and 3+ examples — a short paragraph or two, about 9–10 minutes", ["One example with its effect", "A single sentence", "A list of techniques with no quotes"]],
+  ["What does “Identify” ask you to do?", "Name it — a short answer", ["Say how or why, with cause and effect", "Make a judgement and justify it", "Explore points for and against"]],
+  ["What does “Explain” ask you to do?", "Say how or why, with cause and effect", ["Just name the technique", "Give similarities and differences", "Make a judgement and justify it"]],
+  ["What does “Analyse” ask you to do?", "Show how techniques create meaning — technique, example, effect", ["Name the technique only", "List the events in order", "Give your personal opinion"]],
+  ["What does “Evaluate” ask you to do?", "Make a judgement — highly, partly — and justify it", ["Name it in one word", "Describe what happens in the text", "Compare two texts evenly"]],
+  ["What does “Discuss” ask you to do?", "Explore points for and against, or several sides", ["Name the technique only", "Give a single firm judgement", "Summarise the text"]],
+  ["In a comparison question, what must you do?", "Discuss BOTH texts evenly and use comparing words — similarly, in contrast, whereas", ["Write about the stronger text only", "Describe each text separately with no links", "Pick a winner and justify it"]],
+  ["In a visual question, what is the common mistake?", "Describing the picture instead of naming visual techniques and explaining their meaning", ["Naming too many techniques", "Using quotation marks", "Writing in the present tense"]],
+  ["If you cannot name a technique, what should you do?", "Quote the words and explain the effect — that is diction or connotation, and it still earns marks", ["Leave the question blank", "Guess a technique that sounds impressive", "Describe the whole text instead"]],
+  ["Which earns more: a correct simple term, or a fancy wrong one?", "A correct simple term — every time", ["The fancy one, for ambition", "They earn the same", "Neither earns anything"]],
+];
+
+/* Both card shapes, from one table. Naming the technique off its definition
+   is the question Part A actually asks; naming its EFFECT is the one that
+   earns the marks, and the toolkit is blunt that a technique with no effect
+   is worth almost nothing - so the deck asks for both. */
+function ealdCards(){
+  const out = [];
+  Object.keys(EALD_FAMILIES).forEach(fam=>{
+    const rows = EALD_FAMILIES[fam];
+    const names = rows.map(r=>r[0]);
+    const effects = rows.map(r=>r[2]);
+    rows.forEach(([name, what, effect], i)=>{
+      const otherNames = shuffle(names.filter((_,j)=>j!==i)).slice(0,3);
+      out.push(makeCard('Which technique is this? “' + what + '”', name,
+        {wrong: otherNames, why: name + ' — ' + effect, topic: fam, level:'recall'}));
+      const otherEffects = shuffle(effects.filter((_,j)=>j!==i)).slice(0,3);
+      out.push(makeCard(name + ' — what effect does it create?', effect,
+        {wrong: otherEffects, why: name + ': ' + what, topic: fam, level:'apply'}));
+    });
+  });
+  EALD_CONFUSED.forEach(([q,a,wrong])=>{
+    out.push(makeCard(q, a, {wrong: wrong.slice(), why:'', topic:'Commonly confused terms', level:'apply'}));
+  });
+  EALD_EXAM.forEach(([q,a,wrong])=>{
+    out.push(makeCard(q, a, {wrong: wrong.slice(), why:'', topic:'Answering Part A', level:'recall'}));
+  });
+  return out;
+}
+function ealdTerms(){
+  const out = [];
+  Object.keys(EALD_FAMILIES).forEach(fam=>{
+    EALD_FAMILIES[fam].forEach(([name, what])=>out.push(makeTerm(name, what, fam)));
+  });
+  return out;
+}
+const EALD_NOTES = [
+  'EALD / English — Module A Techniques Toolkit.',
+  '',
+  'Part A is 15 marks over 3–4 questions on unseen texts, in about 30 minutes.',
+  'Every answer needs the same three parts: TECHNIQUE, EXAMPLE, EFFECT.',
+  'Naming a technique with no effect earns almost nothing.',
+  '',
+  'TEE: Point — answer the question in your first sentence, using its key words.',
+  'Technique + Example — name it and quote a few words in quotation marks.',
+  'Effect — what it makes the reader think or feel, linked back to the question.',
+  '',
+  'Marks guide: 2 marks is one point and one example with its effect, 2–3 sentences.',
+  '3 marks is 1–2 points and two examples. 4 marks is two points and 2–3 examples.',
+  '5–6 marks is 2–3 points and three or more examples, a short paragraph or two.',
+  '',
+  'What markers reward: read the question twice and answer every part of it;',
+  'use several different techniques rather than the same one twice; explain the',
+  'effect rather than describing what happens; use evidence from the whole text.',
+  'Comparison questions: discuss both texts evenly and use comparing words.',
+  'Visual questions: name the visual technique and explain its meaning.',
+  '',
+  'If you cannot name a technique, quote the words and explain the effect.',
+  'That is diction or connotation, and it still earns marks. A correct simple',
+  'term beats a fancy wrong one.',
+].join('\n');
+
 function defaultSubjects(){
   /* Normalised on the way out. Only SAVED subjects used to be, so a fresh
      install started with a subject that had no terms, no syllabus and no exam
@@ -4842,6 +5063,12 @@ function defaultSubjects(){
     builtin: 'multiplication',
     notes: 'Multiplication tables.\n\nThe dungeon drills you on products, missing factors and chained products, scaled to the difficulty you pick each round. Upload your own material here to mix real flashcards into this subject.',
     flashcards: [],
+  }), normalizeSubject({
+    id: 'eald', name: 'EALD — Techniques', icon: '✍',
+    builtin: 'eald',
+    notes: EALD_NOTES,
+    flashcards: ealdCards(),
+    terms: ealdTerms(),
   })];
 }
 const SUBJECT_ICONS = [
@@ -5027,6 +5254,17 @@ async function loadAll(){
     if(placeholder) App.subjects = defaultSubjects();
     else App.subjects = defaultSubjects().concat(App.subjects);
   }
+  /* A deck that ships with the game has to reach the people already playing
+     it, not just a fresh install - so it is handed out once to anybody who
+     does not have it. The flag is STORED, not held in memory: without that,
+     deleting the subject would only last until the next reload, and a deck
+     you threw away coming back is the game arguing with you. */
+  const hadEald = await Storage.get('ealdGiven', false);
+  if(!hadEald && !App.subjects.some(s=>s.builtin==='eald')){
+    const eald = defaultSubjects().find(s=>s.builtin==='eald');
+    if(eald){ App.subjects = App.subjects.concat([eald]); await saveSubjects(); }
+  }
+  if(!hadEald) await Storage.set('ealdGiven', true);
 
   await getAiModel();          /* so the settings screen can render the choice without waiting */
   await getAdCfg();            /* and so the hint button knows whether to offer itself */
