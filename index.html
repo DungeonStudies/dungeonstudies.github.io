@@ -3152,6 +3152,124 @@ function _cellsOf(line){
   while((m = re.exec(line)) !== null){ if(m[0]) out.push({at:m.index, text:m[0]}); }
   return out;
 }
+/* ===================== READING A TABLE AS A TABLE =====================
+   What makes a hand-written deck better than a generated one is not the
+   wording, it is the WRONG ANSWERS. "Enjambment or end-stopped line" is a
+   question; "enjambment or low angle" is a free mark. Writing the deck by
+   hand, the thing I was actually doing was reading each table and keeping its
+   rows together, because rows of one table are peers - all sound techniques,
+   all camera angles - and the header row says what each column is FOR.
+
+   None of that needs understanding. A table is a schema:
+
+     Technique | What it is          | Example        | Possible effects
+     Simile    | Comparison using... | "like ants"    | Makes something...
+
+   The header names the columns, so the first column is the thing being
+   taught, a "what it is" column is its definition and an "effects" column is
+   what it does. The heading above the table is the family. From that you can
+   ask the two questions worth asking - name it from its definition, and name
+   its effect - and draw every wrong answer from the SAME TABLE.
+   ===================================================================== */
+const COL_DEF = /^(?:what it is|meaning|definition|description|what it means|what to look for|the difference)/i;
+const COL_EX  = /^(?:example|examples|how to spot|how to spot it|what to write|look for)/i;
+const COL_FX  = /^(?:possible effects?|effects?|why it matters|purpose|impact|what it does)/i;
+function harvestTables(text){
+  const raw = String(text || '').replace(/\r/g, '').replace(/([A-Za-z])-\n[ \t]*([a-z])/g, '$1$2');
+  const lines = raw.split('\n').map(l=>l.replace(/\s+$/, ''));
+  const tables = [];
+  let heading = '', i = 0, open = null;
+  const cellsOf = line => {
+    const out = [];
+    const re = /\S(?:.*?\S)?(?=\s{3,}|$)/g;
+    let m;
+    while((m = re.exec(line)) !== null){ if(m[0]) out.push({at:m.index, text:m[0]}); }
+    return out;
+  };
+  while(i < lines.length){
+    if(!lines[i].trim()){ i++; continue; }
+    let j = i;
+    while(j < lines.length && lines[j].trim()) j++;
+    const block = lines.slice(i, j);
+    const head = cellsOf(block[0]);
+    if(head.length >= 2){
+      /* rebuild the row by column, the way a reader's eye does */
+      const cols = head.map(c=>[c.text]), starts = head.map(c=>c.at);
+      for(let k = 1; k < block.length; k++){
+        cellsOf(block[k]).forEach(c=>{
+          let best = 0, dist = Infinity;
+          starts.forEach((st, n)=>{ const d = Math.abs(st - c.at); if(d < dist){ dist = d; best = n; } });
+          if(dist <= 8) cols[best].push(c.text);
+        });
+      }
+      const row = cols.map(parts=>parts.reduce((acc, bit)=>
+        /[A-Za-z]-$/.test(acc) && /^[a-z]/.test(bit) ? acc.slice(0,-1) + bit
+                                                     : (acc ? acc + ' ' + bit : bit), '')
+        .replace(/\s+/g,' ').trim());
+      /* a header row starts a new table; a table with the same header as the
+         one before it is that same table continued over a page break */
+      const looksHeader = row.length >= 2 && row.every(x=>wordCount(x) <= 5)
+                       && (COL_DEF.test(row[1]||'') || COL_EX.test(row[1]||'') || COL_FX.test(row[row.length-1]||''));
+      if(looksHeader){
+        const key = row.join('|');
+        const prev = tables.find(t=>t.key === key && t.heading === heading);
+        open = prev || null;
+        if(!open){ open = {key, heading, header:row, rows:[]}; tables.push(open); }
+      } else if(open && row.length >= 2 && row[0] && wordCount(row[0]) <= 7){
+        open.rows.push(row);
+      }
+    } else {
+      /* A heading is the first line of its block, not a block of its own - in
+         a real document it is followed straight away by the paragraph that
+         introduces the section, with no blank line between. Requiring a lone
+         line meant every heading after the first was missed, and whole tables
+         of techniques ended up filed under "Question words". */
+      const first = block[0].trim();
+      const h = block[0].match(/^\s*#{1,4}\s+(.{3,60})$/)
+             || (/^[A-Z][A-Za-z ,/'–-]{4,60}$/.test(first) && !/[.;:!?]$/.test(first) ? [0, first] : null);
+      if(h){ heading = h[1]; open = null; }
+    }
+    i = j;
+  }
+  return tables.filter(t=>t.rows.length >= 2);
+}
+/* The two questions a table is actually able to ask, with every wrong answer
+   taken from its own rows. */
+function tableCards(tables){
+  const out = [];
+  tables.forEach(t=>{
+    const hdr = t.header.map(h=>String(h||''));
+    let di = -1, fi = -1;
+    hdr.forEach((h, n)=>{
+      if(n === 0) return;
+      if(di < 0 && (COL_DEF.test(h) || COL_EX.test(h))) di = n;
+      if(COL_FX.test(h)) fi = n;
+    });
+    if(di < 0 && hdr.length >= 2) di = 1;
+    const names = t.rows.map(r=>r[0]).filter(Boolean);
+    if(names.length < 3) return;
+    const topic = t.heading || 'From your notes';
+    t.rows.forEach((r, i)=>{
+      const name = r[0];
+      if(!goodTerm(name)) return;
+      const def = di >= 0 ? r[di] : '';
+      const fx  = fi >= 0 ? r[fi] : '';
+      const peers = n => shuffle(names.filter((x, j)=>j !== i && x && normText(x) !== normText(name))).slice(0, n);
+      if(def && wordCount(def) >= 3 && !badPhrase(def)){
+        const w = peers(3);
+        if(w.length === 3) out.push(makeCard('Which one is this? “' + def + '”', name,
+          {wrong:w, why: fx ? (name + ' — ' + fx) : '', topic, level:'recall'}));
+      }
+      if(fx && wordCount(fx) >= 3 && !badPhrase(fx) && fi !== di){
+        const others = shuffle(t.rows.filter((_, j)=>j !== i).map(r2=>r2[fi])
+                        .filter(x=>x && !badPhrase(x) && normText(x) !== normText(fx))).slice(0, 3);
+        if(others.length === 3) out.push(makeCard(name + ' — what effect does it have?', fx,
+          {wrong:others, why: def ? (name + ': ' + def) : '', topic, level:'apply'}));
+      }
+    });
+  });
+  return out;
+}
 function cleanSource(text){
   let t = String(text || '').replace(/\r/g, '');
   t = t.replace(/([A-Za-z])-\n[ \t]*([a-z])/g, '$1$2');       /* photo-\nsynthesis */
@@ -3336,7 +3454,12 @@ function localAnalyze(text){
   const src = cleanSource(text);
   const pools = harvestPools(src);
   const sentences = _sentencesOf(src);
-  if(!sentences.length) return {notes: src.slice(0,600), flashcards: [], terms: []};
+  /* Tables first, and they get the places. A row of a table knows what its
+     neighbours are, which is the one thing the sentence reader can never
+     work out - and it is the difference between a wrong answer you have to
+     think about and one you can rule out at a glance. */
+  const fromTables = tableCards(harvestTables(text));
+  if(!sentences.length) return {notes: src.slice(0,600), flashcards: fromTables.slice(0,20), terms: []};
 
   /* headings give every question below them a topic for free */
   let heading = '';
@@ -3357,7 +3480,8 @@ function localAnalyze(text){
   const top  = scored.slice().sort((x,y)=>y.score-x.score).slice(0,topN).sort((x,y)=>x.idx-y.idx);
   const notes = top.length ? top.map(t=>'• '+t.s).join('\n') : src.slice(0,600);
 
-  const cards = [], usedFront = new Set();
+  const cards = fromTables.slice(0, 16);
+  const usedFront = new Set(cards.map(c=>normText(c.front)));
   const topicOf = sn => headingAt[sn] || 'From your notes';
   const whyOf   = idx => { const nx = sentences[idx+1]; return (nx && nx.length <= 170) ? nx : ''; };
   const add = (front, back, idx, level, extra)=>{
