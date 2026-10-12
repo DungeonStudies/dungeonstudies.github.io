@@ -5359,6 +5359,9 @@ function setRealmSilently(id){
 function setRealm(id){
   if(App.profileId===id){ App.dungeonView='hub'; render(); return; }
   App.profileId = id;
+  /* and it works the other way too: descend into a realm and that is the
+     subject you are studying, so the two screens never disagree */
+  if(App.subjects.some(x=>x.id===id)){ App.activeSubjectId = id; saveActiveSubject(); }
   const p = realmData(id);
   App.character = p.character;
   App.run = p.run;
@@ -8745,7 +8748,18 @@ function renderSubjectBar(){
       bar.appendChild(f); return;
     }
     const chip = el(`<div class="subject-chip${s.id===App.activeSubjectId?' active':''}"><span>${escapeHtml(s.name)}</span><button class="mini" title="Rename">✎</button></div>`);
-    chip.querySelector('span').addEventListener('click', ()=>{ App.activeSubjectId=s.id; saveActiveSubject(); inlineForm=null; render(); });
+    chip.querySelector('span').addEventListener('click', ()=>{
+      App.activeSubjectId = s.id; saveActiveSubject(); inlineForm = null;
+      /* AND THE DUNGEON FOLLOWS YOU.
+         The subject you are studying and the realm you descend into used to
+         be two separate settings, which meant you could pick EALD up here,
+         walk into the dungeon, and be asked multiplication - because the
+         realm was still Mathematics and nothing said so. Picking a subject
+         means you are working on that subject. The one exception is a live
+         run: swapping the ground under somebody mid-floor would lose it. */
+      if(App.profileId !== s.id && !(App.run && App.run.active)) setRealmSilently(s.id);
+      render();
+    });
     chip.querySelector('button').addEventListener('click', (e)=>{ e.stopPropagation(); inlineForm={type:'renameSubject', subjectId:s.id}; render(); });
     bar.appendChild(chip);
   });
