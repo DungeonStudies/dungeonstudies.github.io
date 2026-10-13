@@ -5243,6 +5243,238 @@ const EALD_NOTES = [
   'term beats a fancy wrong one.',
 ].join('\n');
 
+/* ===================== THE TRUMAN SHOW =====================
+   Two decks, kept apart because they do two different jobs. The vocabulary
+   one is about WRITING - the verbs that go in an essay, the theme words, and
+   the mistakes that lose marks. The concept bank is about the FILM - Weir's
+   argument for each idea, and a scene from the beginning, the middle and the
+   end to hang three body paragraphs on.
+
+   Both written out by hand off the source, for the same reason as the EALD
+   deck: the wrong answers have to come from the same family or there is no
+   question to answer. "Exposes or critiques" is a question. "Exposes or
+   low angle" is a free mark.
+   ========================================================= */
+const TRUMAN_VOCAB = {
+  "Analysis verbs": [
+    ["exposes", "shows something hidden or wrong", "Weir exposes the lies behind Truman's “perfect” marriage.", "Don't use it for something that was never hidden."],
+    ["critiques", "judges something as wrong", "Weir critiques a media industry that sells a human life.", "“Critiques” is not “criticises Truman” — Weir critiques systems, not his hero."],
+    ["positions the audience to", "makes viewers feel or think a certain way", "The cross-cutting positions the audience to distrust Marlon.", "Always finish the phrase: positions the audience to [verb]."],
+    ["evokes", "creates a feeling", "The storm scene evokes admiration for Truman's courage.", "Evoke a feeling — fear, empathy — not an object."],
+    ["satirises", "mocks something in order to criticise it", "Weir satirises product placement through Meryl's Mococoa advert.", "Satire must be mocking. Don't use it for serious scenes like the storm."],
+    ["challenges", "questions or pushes against", "The ending challenges viewers to judge their own viewing habits.", "“Challenges” needs the thing being questioned after it."],
+    ["reveals", "lets us see", "The elevator scene reveals that Seahaven is a set.", "Fine in most places — just don't overuse it."],
+    ["emphasises / highlights", "makes something stand out", "The close-up emphasises Meryl's fake smile.", "Don't use both in one sentence."],
+    ["foregrounds", "puts at the front, makes central", "The opening interviews foreground the theme of performance.", "Use it for ideas, not characters."],
+    ["undermines", "weakens", "Christof's directions undermine the emotion of the reunion.", "It means weaken, not destroy."],
+    ["reinforces", "makes stronger", "The catchphrase reinforces the sitcom feel of Seahaven.", "The opposite of undermines — don't mix them up."],
+    ["juxtaposes", "puts two things side by side to contrast them", "Weir juxtaposes Meryl's cheerful advert with Truman's panic.", "You need TWO things for it."],
+    ["symbolises", "stands for an idea", "The EXIT door symbolises Truman's freedom of choice.", "Only for objects, places or images."],
+  ],
+  "Theme words": [
+    ["surveillance", "being watched all the time", "Hidden cameras behind mirrors show total surveillance.", "It is a noun. There is no verb “surveillanced”."],
+    ["autonomy", "the right to make your own choices", "Truman claims his autonomy when he walks through the EXIT door.", "Not the same as freedom of movement — it is about choice."],
+    ["manipulation", "controlling someone in a hidden, unfair way", "Christof's manipulation of Truman's grief boosts ratings.", "The verb is “manipulate”; the person is “manipulative”."],
+    ["artificiality", "being fake or man-made", "The painted sky exposes the artificiality of Seahaven.", "The adjective is “artificial”."],
+    ["voyeurism", "enjoying watching other people's private lives", "The mirror-camera shots make the audience complicit in voyeurism.", "Not just watching — watching what should be private. Adjective: voyeuristic."],
+    ["authenticity", "being real and genuine", "Sylvia represents authenticity in a world of actors.", "The adjective is “authentic”."],
+    ["commodification", "turning something into a product to sell", "Weir critiques the commodification of Truman's life.", "Truman is the commodity; the process is commodification."],
+    ["complicity", "being partly responsible for something wrong", "The final line makes viewers complicit in Truman's imprisonment.", "“Complicit IN”, not “complicit of”."],
+    ["illusion", "something that looks real but is not", "Seahaven is an illusion of safety.", "Not “allusion”, which is a reference to something else."],
+    ["conformity", "following the rules and expectations of others", "The neighbours' scripted greetings show forced conformity.", "A noun; the verb is “conform to”."],
+    ["liberation", "being set free", "The bow marks Truman's liberation.", "Use it for the end of the film only."],
+    ["consumerism", "a culture focused on buying things", "Product placement reflects 1990s consumerism.", "A context word — keep it to one sentence."],
+    ["dystopia", "a terrible, controlled place", "Seahaven looks like a utopia but works like a dystopia.", "Don't call Seahaven a dystopia without explaining the twist."],
+  ],
+};
+const TRUMAN_PATTERNS = [
+  ["★ not as X, but as Y", "Weir presents Seahaven not as a paradise, but as a prison."],
+  ["★ challenging the assumption that…", "The ending challenges the assumption that watching is harmless."],
+  ["★ What appears to be X is revealed as Y.", "What appears to be a loving marriage is revealed as a paid performance."],
+  ["★ By [technique], Weir [verb]…, positioning the audience to…", "By cross-cutting to the control room, Weir exposes Marlon's lie, positioning the audience to feel betrayed."],
+  ["★ In doing so, Weir…", "Christof names each technique during the reunion. In doing so, Weir reveals how television manufactures emotion."],
+  ["Rather than X, Truman Y.", "Rather than turning back in the storm, Truman shouts at the sky."],
+  ["Ironically, …", "Ironically, Marlon's promise not to lie is itself a lie."],
+  ["Weir invites responders to question whether…", "Weir invites responders to question whether their own world is any less controlled."],
+];
+const TRUMAN_CONFUSED = [
+  ["Fish-eye vs vignette", "Fish-eye bends and bulges the image; a vignette is the dark oval edges. Hidden-camera shots use both."],
+  ["Diegetic vs non-diegetic sound", "Diegetic means the characters can hear it (the radio); non-diegetic means only we hear it (the film score)."],
+  ["High angle vs low angle", "A high angle looks DOWN and makes a character seem weak; a low angle looks UP and makes them seem powerful."],
+  ["Shot vs angle", "A shot is how close (close-up, long shot); an angle is from where (high, low, eye level)."],
+  ["Cross-cutting vs montage", "Cross-cutting switches between two places at the same time; a montage is a quick series of shots."],
+  ["Irony vs dramatic irony", "Irony is the opposite of what is expected; dramatic irony is the audience knowing something the character does not."],
+  ["Satire vs comedy", "Comedy just makes us laugh; satire makes us laugh in order to criticise something."],
+  ["Symbol vs motif", "A symbol is one object standing for an idea (the EXIT door); a motif is something that repeats across the film (water, mirrors)."],
+  ["Direct address vs voice-over", "Direct address is a character looking into the camera and speaking to us; a voice-over is a voice heard while the speaker is off screen."],
+  ["Affect vs effect", "“Affect” is the verb (the music affects us); “effect” is the noun (the effect of the music)."],
+];
+const TRUMAN_RULES = [
+  ["What tense do you write about a film in?", "The present tense — “Weir uses a close-up”, not “Weir used a close-up”", ["The past tense, because the film already happened", "Past for the plot, present for technique", "Whichever reads better in the sentence"]],
+  ["In an essay, what do you call the person who made the film?", "Weir — not “the movie”, not “they”", ["The movie", "They", "The producers"]],
+  ["What do you call the people watching, in an essay?", "Responders, or the audience", ["Viewers at home", "People", "You and me"]],
+  ["What is the rule when you are not sure of a word?", "Correct and simple beats fancy and wrong", ["Use the longest word you know", "Use it anyway and hope", "Avoid the sentence entirely"]],
+];
+const TRUMAN_CONCEPTS = [
+  ["Control", "Those in power control people through fear, guilt and comfort, not force.", "Father's “drowning” flashback; the ferry panic", "Christof directs the reunion: “Fade up the music … and now, a close up.”", "Christof's storm: “He was born in front of a live audience!”", "The reunion directions + “He was born in front of a live audience!” — gentle control against brutal control"],
+  ["Freedom", "True freedom means choosing for yourself, even when the real world is uncertain.", "The Fiji golf ball: “You can't get any further away before you start coming back.”", "“Somebody help me! I'm being spontaneous!”", "The EXIT door, the catchphrase, the bow", "The golf ball “Fiji” + the EXIT door — dream into choice"],
+  ["Truth vs illusion", "A comfortable lie is still a prison.", "The falling “Sirius” light; the radio explains it away", "The elevator with no back wall; Meryl's crossed fingers in the wedding photo", "The boat hits the painted sky", "The falling light + the painted sky — the sky cracks, then the sky ends"],
+  ["Identity", "Identity is only real when it is chosen, not performed for others.", "The mirror game behind a hidden camera", "The “Trumania” mirror game, now performed on purpose", "“You never had a camera in my head!”", "The first mirror scene + “You never had a camera in my head!”"],
+  ["Courage", "Courage is facing the fear that others planted in you.", "The ferry panic", "He drives over the bridge with his eyes shut", "“Is that the best you can do? You're gonna have to kill me!”", "The ferry panic + the storm — the same fear, the opposite response"],
+  ["Connection", "Real connection cannot be manufactured; performed love is a trap.", "Sylvia on the beach: “Everybody's pretending.”", "Meryl breaks character: “DO SOMETHING!”; Marlon's scripted speech", "Sylvia runs out to meet him", "Sylvia's honesty + Meryl's “Who are you talking to?” — real against performed love"],
+  ["The media", "The media shapes what people accept as real and sells it back to them.", "Meryl: “there is no difference between a private life and a public life”", "Christof: “We accept the reality of the world with which we're presented.”", "“I am the creator … of a television show that gives hope and joy and inspiration to millions.”", "“We accept the reality…” + “no more truth out there…”"],
+  ["The audience", "Viewers who consume other people's lives are part of the problem.", "Sylvia's badge: “How's it going to end?”", "Viewers betting in the Truman Bar; Tru Talk", "Two guards: “What else is on?”", "“How's it going to end?” + “What else is on?” — the audience wants an ending, then forgets him"],
+  ["Empathy", "Weir makes us feel for Truman, then makes us question our own role.", "Truman's fear of water and his guilt over his father", "Marlon's speech fed by Christof — we are moved, then betrayed", "Truman's bow; the viewers move on", "Marlon's fed speech + the bow"],
+  ["Limitations", "Social and emotional limits are built to keep people in place.", "The teacher in flashback: “There's really nothing left to explore.”", "The fire, the “leak at the plant”, the police: “You're welcome, Truman.”", "The painted sky wall — the world's limit is literal", "The teacher's map + the painted sky wall"],
+];
+const TRUMAN_QUOTES = [
+  ["“He was born in front of a live audience!”", "Christof", "Control"],
+  ["“Somebody help me! I'm being spontaneous!”", "Truman", "Freedom"],
+  ["“You never had a camera in my head!”", "Truman", "Identity"],
+  ["“Is that the best you can do? You're gonna have to kill me!”", "Truman", "Courage"],
+  ["“Everybody knows everything you do … Everybody's pretending.”", "Sylvia", "Connection"],
+  ["“We accept the reality of the world with which we're presented.”", "Christof", "The media"],
+  ["“there is no difference between a private life and a public life”", "Meryl", "The media"],
+  ["“What else is on?”", "Two guards", "The audience"],
+  ["“How's it going to end?”", "Sylvia's badge", "The audience"],
+  ["“There's really nothing left to explore.”", "The teacher", "Limitations"],
+  ["“You can't get any further away before you start coming back.”", "Truman", "Freedom"],
+  ["“Fade up the music … and now, a close up.”", "Christof", "Control"],
+];
+const TRUMAN_SKILL = [
+  ["How do you turn a concept into three body paragraphs?", "Pick one scene from the beginning, one from the middle and one from the end", ["Write three paragraphs about the same scene", "Use three different concepts in one essay", "Summarise the plot in order"]],
+  ["The question uses a concept that is not in your bank. What do you do?", "Pick the closest one — hope becomes Freedom and Courage, isolation becomes Connection, power becomes Control", ["Leave that part of the question out", "Write about every concept you know", "Invent a new concept and define it"]],
+  ["Where does Weir's argument belong in your essay?", "In your thesis — it is the line you are arguing", ["In the conclusion only", "In every topic sentence", "Nowhere; you just describe scenes"]],
+];
+
+/* The vocabulary deck asks three things of every word: what it means, what it
+   looks like in a sentence about this film, and the mistake people make with
+   it. That third one is the toolkit's own column and it is the most useful
+   question in the deck - knowing a word is not the same as knowing how to
+   get it wrong. */
+function trumanVocabCards(){
+  const out = [];
+  Object.keys(TRUMAN_VOCAB).forEach(fam=>{
+    const rows = TRUMAN_VOCAB[fam];
+    const words = rows.map(r=>r[0]);
+    const means = rows.map(r=>r[1]);
+    rows.forEach(([w, mean, ex, trap], i)=>{
+      const otherWords = shuffle(words.filter((_,j)=>j!==i)).slice(0,3);
+      const otherMeans = shuffle(means.filter((_,j)=>j!==i)).slice(0,3);
+      out.push(makeCard('Which word means “' + mean + '”?', w,
+        {wrong:otherWords, why: ex, topic: fam, level:'recall'}));
+      out.push(makeCard('What does “' + w + '” mean?', mean,
+        {wrong:otherMeans, why: ex, topic: fam, level:'recall'}));
+      if(trap) out.push(makeCard('What is the trap with “' + w + '”?', trap,
+        {wrong: shuffle(rows.filter((_,j)=>j!==i).map(r=>r[3]).filter(Boolean)).slice(0,3),
+         why: ex, topic: fam, level:'apply'}));
+    });
+  });
+  TRUMAN_PATTERNS.forEach(([pat, ex], i)=>{
+    out.push(makeCard('Which Band 6 pattern is this? “' + ex + '”', pat,
+      {wrong: shuffle(TRUMAN_PATTERNS.filter((_,j)=>j!==i).map(x=>x[0])).slice(0,3),
+       why:'', topic:'Band 6 phrase patterns', level:'apply'}));
+  });
+  TRUMAN_CONFUSED.forEach(([pair, diff], i)=>{
+    out.push(makeCard(pair + ' — what is the difference?', diff,
+      {wrong: shuffle(TRUMAN_CONFUSED.filter((_,j)=>j!==i).map(x=>x[1])).slice(0,3),
+       why:'', topic:'Film terms people mix up', level:'apply'}));
+  });
+  TRUMAN_RULES.forEach(([q,a,w])=>{
+    out.push(makeCard(q, a, {wrong:w.slice(), why:'', topic:'Writing rules', level:'recall'}));
+  });
+  return out;
+}
+/* The concept bank is a different job: not what a word means, but what Weir
+   is ARGUING and which scene proves it. The quotes are asked both ways -
+   who said it, and which idea it belongs to - because in the exam you have to
+   go from a concept to its evidence under time pressure. */
+function trumanConceptCards(){
+  const out = [];
+  const names = TRUMAN_CONCEPTS.map(c=>c[0]);
+  const args  = TRUMAN_CONCEPTS.map(c=>c[1]);
+  TRUMAN_CONCEPTS.forEach(([name, arg, beg, mid, end, pair], i)=>{
+    const others = n => shuffle(names.filter((_,j)=>j!==i)).slice(0, n);
+    /* Several arguments open with the concept's own name - "Identity is only
+       real when it is chosen" hands you the answer. Blank it out rather than
+       drop the card, because it is the card worth asking. */
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const hidden = arg.replace(new RegExp('\\b' + esc + '\\b', 'gi'), '\u2014\u2014\u2014');
+    out.push(makeCard('Which concept is this Weir’s argument for? “' + hidden + '”', name,
+      {wrong: others(3), why:'Beginning: ' + beg, topic:'Weir’s argument', level:'apply'}));
+    out.push(makeCard(name + ' — what is Weir’s argument?', arg,
+      {wrong: shuffle(args.filter((_,j)=>j!==i)).slice(0,3), why:'Best pair: ' + pair,
+       topic:'Weir’s argument', level:'apply'}));
+    out.push(makeCard(name + ' — which scene opens it?', beg,
+      {wrong: shuffle(TRUMAN_CONCEPTS.filter((_,j)=>j!==i).map(c=>c[2])).slice(0,3),
+       why:'Turning point: ' + mid, topic:'Beginning', level:'recall'}));
+    out.push(makeCard(name + ' — what is the turning point?', mid,
+      {wrong: shuffle(TRUMAN_CONCEPTS.filter((_,j)=>j!==i).map(c=>c[3])).slice(0,3),
+       why:'Ending: ' + end, topic:'Turning point', level:'recall'}));
+    out.push(makeCard(name + ' — how does it end?', end,
+      {wrong: shuffle(TRUMAN_CONCEPTS.filter((_,j)=>j!==i).map(c=>c[4])).slice(0,3),
+       why:'Best pair: ' + pair, topic:'Ending', level:'recall'}));
+    out.push(makeCard(name + ' — which two scenes pair best?', pair,
+      {wrong: shuffle(TRUMAN_CONCEPTS.filter((_,j)=>j!==i).map(c=>c[5])).slice(0,3),
+       why: arg, topic:'Best pairs', level:'apply'}));
+  });
+  const speakers = [...new Set(TRUMAN_QUOTES.map(q=>q[1]))];
+  TRUMAN_QUOTES.forEach(([quote, who, concept], i)=>{
+    out.push(makeCard('Who says this? ' + quote, who,
+      {wrong: shuffle(speakers.filter(x=>x !== who)).slice(0,3), why:'It belongs to ' + concept + '.',
+       topic:'Quotes', level:'recall'}));
+    out.push(makeCard('Which concept does this quote belong to? ' + quote, concept,
+      {wrong: shuffle(names.filter(x=>x !== concept)).slice(0,3), why: who + ' says it.',
+       topic:'Quotes', level:'apply'}));
+  });
+  TRUMAN_SKILL.forEach(([q,a,w])=>{
+    out.push(makeCard(q, a, {wrong:w.slice(), why:'', topic:'Using the bank', level:'apply'}));
+  });
+  return out;
+}
+function trumanVocabTerms(){
+  const out = [];
+  Object.keys(TRUMAN_VOCAB).forEach(fam=>{
+    TRUMAN_VOCAB[fam].forEach(([w, mean])=>out.push(makeTerm(w, mean, fam)));
+  });
+  return out;
+}
+function trumanConceptTerms(){
+  return TRUMAN_CONCEPTS.map(([name, arg])=>makeTerm(name, arg, 'Weir’s argument'));
+}
+const TRUMAN_VOCAB_NOTES = [
+  'The Truman Show — Vocabulary.',
+  '',
+  'Rule: correct and simple beats fancy and wrong. Learn the ★ words first.',
+  'If you are not sure how to use a word tomorrow, use a simpler one.',
+  '',
+  'The #1 grammar rule for film essays: write about the film in the PRESENT',
+  'tense. "Weir uses a close-up", not "Weir used a close-up". "Truman escapes",',
+  'not "Truman escaped". Keep it the same the whole way through.',
+  '',
+  'Say "Weir", not "the movie" and not "they". Call us "responders" or "the',
+  'audience".',
+  '',
+  'Linking: paragraph 2 opens "While the opening establishes …, the turning',
+  'point …". Paragraph 3 opens "Ultimately, …". Adding evidence: "This is',
+  'reinforced when …" or "Similarly, …". Judging how far: "to a significant',
+  'extent", "to a great extent", "only partly". Conclusion: "Consequently, …"',
+  'or "Thus, The Truman Show …".',
+].join('\n');
+const TRUMAN_CONCEPT_NOTES = [
+  'The Truman Show — Concept Bank.',
+  '',
+  'How to use it: circle the concept in the question, find it below, and pick',
+  'one scene from the beginning, one from the middle and one from the end.',
+  'That gives you your three body paragraphs.',
+  '',
+  'If the question uses a concept that is not here, pick the closest one.',
+  'Hope becomes Freedom and Courage. Isolation becomes Connection. Power',
+  'becomes Control.',
+  '',
+  'Weir’s argument for each concept is the line that goes in your thesis.',
+].join('\n');
+
 function defaultSubjects(){
   /* Normalised on the way out. Only SAVED subjects used to be, so a fresh
      install started with a subject that had no terms, no syllabus and no exam
@@ -5258,6 +5490,18 @@ function defaultSubjects(){
     notes: EALD_NOTES,
     flashcards: ealdCards(),
     terms: ealdTerms(),
+  }), normalizeSubject({
+    id: 'truman-vocab', name: 'Truman Show — Vocabulary', icon: '📖',
+    builtin: 'truman-vocab',
+    notes: TRUMAN_VOCAB_NOTES,
+    flashcards: trumanVocabCards(),
+    terms: trumanVocabTerms(),
+  }), normalizeSubject({
+    id: 'truman-concepts', name: 'Truman Show — Concept Bank', icon: '🎬',
+    builtin: 'truman-concepts',
+    notes: TRUMAN_CONCEPT_NOTES,
+    flashcards: trumanConceptCards(),
+    terms: trumanConceptTerms(),
   })];
 }
 const SUBJECT_ICONS = [
@@ -5447,16 +5691,21 @@ async function loadAll(){
     else App.subjects = defaultSubjects().concat(App.subjects);
   }
   /* A deck that ships with the game has to reach the people already playing
-     it, not just a fresh install - so it is handed out once to anybody who
-     does not have it. The flag is STORED, not held in memory: without that,
-     deleting the subject would only last until the next reload, and a deck
-     you threw away coming back is the game arguing with you. */
-  const hadEald = await Storage.get('ealdGiven', false);
-  if(!hadEald && !App.subjects.some(s=>s.builtin==='eald')){
-    const eald = defaultSubjects().find(s=>s.builtin==='eald');
-    if(eald){ App.subjects = App.subjects.concat([eald]); await saveSubjects(); }
+     it, not just a fresh install - so each one is handed out once to anybody
+     who does not have it. The flag is STORED, not held in memory: without
+     that, deleting a subject would only last until the next reload, and a
+     deck you threw away coming back is the game arguing with you. */
+  const given = (await Storage.get('decksGiven', null)) || {};
+  if(await Storage.get('ealdGiven', false)) given.eald = true;   /* the old single flag */
+  let handedOut = false;
+  for(const id of ['eald','truman-vocab','truman-concepts']){
+    if(given[id]) continue;
+    given[id] = true; handedOut = true;
+    if(App.subjects.some(x=>x.builtin === id)) continue;
+    const deck = defaultSubjects().find(x=>x.builtin === id);
+    if(deck) App.subjects = App.subjects.concat([deck]);
   }
-  if(!hadEald) await Storage.set('ealdGiven', true);
+  if(handedOut){ await saveSubjects(); await Storage.set('decksGiven', given); }
 
   await getAiModel();          /* so the settings screen can render the choice without waiting */
   await getAdCfg();            /* and so the hint button knows whether to offer itself */
