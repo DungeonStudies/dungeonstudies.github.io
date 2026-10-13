@@ -863,6 +863,19 @@ body::after{ /* rock strata, chisel speckle, vignette */
   .swb-go{padding:5px 12px;font-size:11.5px;}
 }
 
+/* the answer you missed, kept on screen with the Continue button rather than
+   flashed past in the half second before the monster swings */
+.answer-card{margin:10px 0 2px;padding:12px 14px;border-radius:11px;
+  border:1px solid rgba(255,217,120,.3);background:rgba(255,217,120,.06);}
+.ac-q{font-size:12.5px;line-height:1.5;color:var(--text-dim);margin-bottom:7px;}
+.ac-a{font-family:var(--ui);font-size:15px;font-weight:800;color:#ffe49a;}
+.ac-lab{display:block;font-family:var(--mono);font-size:10px;font-weight:400;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:2px;}
+.ac-why{margin-top:8px;font-size:12.5px;line-height:1.55;color:var(--text-dim);}
+/* a near miss: right word, wrong spelling */
+.slip-note{margin-top:8px;font-size:12.5px;line-height:1.5;color:#ffd978;}
+.slip-note b{color:#fff;}
+
 /* what a subject is made of, and the way to take a piece of it back out */
 .src-row{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;
   border-radius:10px;border:1px solid var(--hairline);background:rgba(255,255,255,.03);}
@@ -2777,6 +2790,58 @@ function playAnim(element, className, durationMs){
 function capitalize(s){ return String(s||'').charAt(0).toUpperCase()+String(s||'').slice(1); }
 function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function normText(s){ return String(s||'').toLowerCase().trim().replace(/[.,!?;:'"()\-]/g,'').replace(/\s+/g,' '); }
+/* HOW FAR APART TWO WORDS ARE, in single-character edits. Needed because
+   fuzzyMatch below compares WHOLE WORDS, so "mitochondira" and "mitochondria"
+   have nothing in common at all as far as it is concerned, and a typo scored
+   the same as an empty box. */
+function editDistance(a, b){
+  if(a === b) return 0;
+  if(!a.length) return b.length;
+  if(!b.length) return a.length;
+  let prev = Array.from({length:b.length+1}, (_, i)=>i);
+  for(let i = 1; i <= a.length; i++){
+    const cur = [i];
+    for(let j = 1; j <= b.length; j++){
+      cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+/* KNOWING IT AND SPELLING IT ARE DIFFERENT THINGS.
+   Somebody who types "enjambement" knows what enjambment is. Marking that
+   the same as a blank page is just punishing them for a keyboard, so a near
+   miss lands as a HALF strike: the monster does not get its turn, but the
+   blow is halved and you are shown the spelling.
+
+   How near is near: at most a fifth of the answer's length in edits, capped
+   at two, and never on an answer short enough that two edits could turn it
+   into a different word. "cat" and "bat" are not a typo of each other. */
+function spellingSlip(input, correct){
+  const a = normText(input), b = normText(correct);
+  if(!a || !b || a === b) return false;
+  if(b.length < 5) return false;
+  const limit = Math.min(2, Math.floor(b.length / 5));
+  if(limit < 1) return false;
+  if(Math.abs(a.length - b.length) > limit) return false;
+  return editDistance(a, b) <= limit;
+}
+/* And the same idea for an answer of several words: every word right but one
+   of them spelled wrong. */
+function nearMiss(input, correct){
+  if(spellingSlip(input, correct)) return true;
+  const aw = normText(input).split(' ').filter(Boolean);
+  const bw = normText(correct).split(' ').filter(Boolean);
+  if(!bw.length || bw.length > 4 || !aw.length) return false;
+  if(Math.abs(aw.length - bw.length) > 1) return false;
+  let exact = 0, slips = 0;
+  bw.forEach(w=>{
+    if(aw.indexOf(w) >= 0){ exact++; return; }
+    if(aw.some(x=>spellingSlip(x, w))) slips++;
+  });
+  return slips > 0 && (exact + slips) === bw.length;
+}
+const NEAR_MISS_MULT = 0.5;
 function fuzzyMatch(input, correct){
   const a = normText(input), b = normText(correct);
   if(!a) return false;
@@ -8668,6 +8733,12 @@ const root = document.getElementById('root');
 let inlineForm = null;
 
 function setTopTab(tab){
+  /* Mid-run, Play is the only tab on the bar - and tapping it used to set the
+     view to the realm picker, which walked you straight out of the fight and
+     left the floor behind without ever fleeing. The way out of a fight is
+     through it or by fleeing, so while a floor is live this does nothing. */
+  if(inTheDungeon() && tab === 'play'){ render(); return; }
+  if(inAMatch() && tab === 'pvp'){ render(); return; }
   if(tab==='play') App.dungeonView = 'select';   // Play always opens the realm picker
   if(tab==='pvp') openPvp();
   App.topTab = tab; render();
@@ -10933,6 +11004,7 @@ function startNewTurn(){
     App.run.monster.healCut = 0;
   App.run.examMult = 0;
   App.examResult = null;
+  App.nearMiss = null;
   App.currentQuestion = null;
   App.run.difficulty = null;
   App.currentPhase = 'difficulty';
@@ -11307,13 +11379,21 @@ async function submitAnswer(rawValue){
   return actOnce(()=>submitAnswerNow(q, rawValue));
 }
 async function submitAnswerNow(q, rawValue){
-  const correct = q.mode==='mcq' ? (rawValue===q.correct) : fuzzyMatch(rawValue, q.correct);
+  let correct = q.mode==='mcq' ? (rawValue===q.correct) : fuzzyMatch(rawValue, q.correct);
+  /* a typed answer that is only misspelled counts, at half strength */
+  App.nearMiss = null;
+  if(!correct && q.mode !== 'mcq' && nearMiss(rawValue, q.correct)){
+    correct = true;
+    App.nearMiss = {typed: String(rawValue||'').trim(), correct: q.correct};
+    App.run.examMult = NEAR_MISS_MULT;
+  }
   App.lastAnswerCorrect = correct;
+  App.lastAnswerSlip = !!App.nearMiss;
   Sfx.play(correct ? 'right' : 'wrong');
   App.currentPhase = 'reveal';
   render();
-  await sleep(500);
-  await resolveAnswer(q, correct, 1);
+  await sleep(App.nearMiss ? 900 : 500);
+  await resolveAnswer(q, correct, App.nearMiss ? 0.5 : 1);
 }
 /* Everything that happens once the verdict is in, whichever kind of question
    produced it. A written answer gets here too, after it has been marked and
@@ -14452,7 +14532,8 @@ function damageBreakdown(skill, st, m){
   if(xm > 0 && xm !== 1){
     v = Math.max(1, Math.round(v * xm));
     const xr = App.examResult;
-    parts.push({label: xr ? ('Marked ' + xr.awarded + '/' + (xr.max||xr.marks)) : 'Your mark',
+    parts.push({label: App.nearMiss ? 'Misspelled — half strike'
+                     : (xr ? ('Marked ' + xr.awarded + '/' + (xr.max||xr.marks)) : 'Your mark'),
                 x: xm, good: xm>1?1:0, bad: xm<1?1:0});
   }
   const aff = skill.noDamage ? 0 : affinity(m, type);
@@ -14792,7 +14873,15 @@ function renderBattle(){
   } else if(phase==='reveal'){
     const _q = App.currentQuestion;
     const _why = (!App.lastAnswerCorrect && _q && _q.why) ? `<div class="qwhy">${escapeHtml(_q.why)}</div>` : '';
-    controls.appendChild(el(`<div class="feedback-msg ${App.lastAnswerCorrect?'good':'bad'}">${App.lastAnswerCorrect?'✔ Correct!':'✘ Wrong! The answer was: '+escapeHtml(String(_q.correct))}${_why}</div>`));
+    /* a near miss says so, and shows the spelling - the point is to teach it,
+       not to hide that the blow was halved */
+    const _slip = App.nearMiss
+      ? `<div class="slip-note">You wrote <b>${escapeHtml(App.nearMiss.typed)}</b> — it is spelled <b>${escapeHtml(String(App.nearMiss.correct))}</b>. Close enough to count, so your strike lands at <b>half</b>.</div>`
+      : '';
+    controls.appendChild(el(`<div class="feedback-msg ${App.lastAnswerCorrect?'good':'bad'}">${
+      App.nearMiss ? '✓ Nearly — right answer, wrong spelling'
+                   : (App.lastAnswerCorrect ? '✔ Correct!'
+                      : '✘ Wrong! The answer was: '+escapeHtml(String(_q.correct)))}${_slip}${_why}</div>`));
   } else if(phase==='marking'){
     controls.appendChild(el(`<div class="qbody"><div class="exam-marking">
       <span class="em-dots"><i></i><i></i><i></i></span>
@@ -14914,6 +15003,19 @@ function renderBattle(){
     }
   } else if(phase==='postattack'){
     controls.appendChild(el(`<div class="feedback-msg ${App.lastAnswerCorrect?'good':'bad'}">${App.lastAnswerCorrect?'✔ You struck the enemy!':'✘ The enemy struck back!'}</div>`));
+    /* THE ANSWER, STILL ON SCREEN.
+       It used to flash past in the half second before the monster swung, which
+       is no use at all - the one moment you want to read it is after being hit
+       for missing it. So the blow lands first, and then the answer sits here
+       with the Continue button for as long as you care to look at it. */
+    const lq = App.currentQuestion;
+    if(!App.lastAnswerCorrect && lq && lq.correct){
+      controls.appendChild(el(`<div class="answer-card">
+        <div class="ac-q">${escapeHtml(String(lq.prompt||'').slice(0,240))}</div>
+        <div class="ac-a"><span class="ac-lab">The answer</span>${escapeHtml(String(lq.correct))}</div>
+        ${lq.why ? `<div class="ac-why">${escapeHtml(String(lq.why))}</div>` : ''}
+      </div>`));
+    }
     const row = el(`<div class="row" style="display:flex;gap:10px;flex-wrap:wrap;"></div>`);
     const cont = el(`<button class="px-btn gold">Continue</button>`); cont.addEventListener('click', startNewTurn); row.appendChild(cont);
     const inv = el(`<button class="px-btn">🎒 Inventory</button>`);
