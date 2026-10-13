@@ -5475,6 +5475,119 @@ const TRUMAN_CONCEPT_NOTES = [
   'Weir’s argument for each concept is the line that goes in your thesis.',
 ].join('\n');
 
+/* ===================== TMAN =====================
+   Sixty multiple-choice questions on The Truman Show, written by the player
+   and typed in as given: twenty on the story, twenty on film technique,
+   twenty on ideas and context. The wrong answers came with the questions,
+   which is the best possible case - they are the ones a person who half
+   knows the film would actually pick.
+
+   The three tiers are kept as topics rather than mapped onto the dungeon's
+   own difficulty, because that is chosen per round and filters on how well
+   you know a card, not on how hard the card is. On Hard a short answer is
+   typed rather than picked, so "Peter Weir" has to be spelled - near enough
+   now counts for half.
+   ================================================ */
+const TMAN_BANK = {
+  "Story and facts": [
+    ["Who directed The Truman Show?", "Peter Weir", ["Andrew Niccol", "Jim Carrey", "Ed Harris"], "Peter Weir directed it. Andrew Niccol wrote the screenplay."],
+    ["What year was The Truman Show released?", "1998", ["1995", "2001", "2004"], "It came out in 1998, just before reality TV took off."],
+    ["Who wrote the screenplay?", "Andrew Niccol", ["Peter Weir", "Christof", "Philip Glass"], "Andrew Niccol, a New Zealand writer."],
+    ["What is the name of Truman's town?", "Seahaven", ["Seaside", "Safe Harbour", "Haven Bay"], "Seahaven — “safe harbour”. It was filmed in a real planned town called Seaside, Florida."],
+    ["Who created and directs the TV show inside the film?", "Christof", ["Marlon", "Kirk", "Mike Michaelson"], "Christof, who controls Truman's world from the Lunar Room."],
+    ["What is Truman afraid of?", "Water", ["Heights", "Dogs", "Fire"], "The show “drowned” his father to make him afraid of water so he would not leave the island."],
+    ["Where does Truman dream of going?", "Fiji", ["Chicago", "New Orleans", "Atlantic City"], "Fiji, because Sylvia was told she was “moving to Fiji”."],
+    ["Truman knows her as Lauren. What is her real name?", "Sylvia", ["Meryl", "Hannah", "Vivien"], "“My name's not Lauren. It's Sylvia.”"],
+    ["What is the name of Truman's boat?", "Santa Maria", ["Seahorse", "Magellan", "Mayflower"], "The Santa Maria, Columbus's ship: a symbol of discovering a new world."],
+    ["What falls from the sky near the start of the film?", "A studio light", ["A plane", "A camera", "A bird"], "A studio light labelled “Sirius (9 Canis Major)” — Sirius is a star."],
+    ["Who is Truman's best friend?", "Marlon", ["Spencer", "Kirk", "Simeon"], "Marlon, played by an actor named Louis Coltrane in the story."],
+    ["Which product does Meryl advertise in the middle of a fight?", "Mococoa", ["Chef's Pal", "Elk Rotary", "Kaiser Chicken"], "“Why don't you let me fix you some of this new Mococoa drink?”"],
+    ["What is Truman's catchphrase?", "“Good morning, and in case I don't see ya, good afternoon, good evening, and goodnight!”", ["“Cue the sun.”", "“It's merely controlled.”", "“What else is on?”"], "He says it at the start and again just before he leaves."],
+    ["What does Truman do at the very end?", "Bows and walks through the EXIT door", ["Goes back to Seahaven", "Drowns", "Calls Meryl"], ""],
+    ["What does Christof order when the search party cannot see in the dark?", "“Cue the sun.”", ["“Cut transmission.”", "“Capsize him.”", "“Fade up the music.”"], ""],
+    ["What is Truman's job?", "Insurance", ["Teacher", "Fisherman", "Journalist"], ""],
+    ["After the light falls, what does the radio say caused it?", "An aircraft shedding parts", ["A storm", "A satellite", "Fireworks"], "The media instantly covers up the truth."],
+    ["What are the last words of the film?", "Two guards asking what else is on, and where the TV guide is", ["“He made it!”", "Truman's catchphrase", "“Cease transmission.”"], ""],
+    ["Who is Meryl really?", "An actress named Hannah Gill", ["Truman's real wife", "Christof's sister", "A nurse"], ""],
+    ["About how many cameras film Truman, according to Christof?", "About 5,000", ["50", "500", "5 million"], "“Somewhere in the vicinity of five thousand.”"],
+  ],
+  "Film techniques": [
+    ["The hidden-camera shots have dark, blurred oval edges. What is this technique?", "Vignette", ["Fish-eye", "Montage", "Low-key lighting"], "The dark oval edges are a vignette. It feels like looking through a peephole."],
+    ["In the hidden-camera shots, the image bends and bulges. What is this technique?", "Fish-eye lens distortion", ["Vignette", "Soft focus", "Tracking shot"], "Fish-eye distortion makes Truman look small, trapped and watched."],
+    ["Marlon says “the last thing I would ever do is lie to you” while Weir keeps switching to Christof saying each line first. What is this editing technique?", "Cross-cutting", ["Montage", "Flashback", "Fade"], "Cross-cutting shows the speech is scripted, so we feel betrayed."],
+    ["At the start, Christof, Meryl and Marlon talk straight to the camera. What is this?", "Direct address", ["Voice-over", "Flashback", "Shot-reverse-shot"], "It breaks the fourth wall and makes us the show's viewers."],
+    ["Music that the characters cannot hear is called…", "Non-diegetic", ["Diegetic", "Ambient", "Sound effect"], ""],
+    ["The radio in Truman's car that tracks his movements is an example of…", "Diegetic sound", ["Non-diegetic sound", "Voice-over", "Silence"], "Truman can hear it, so it is diegetic."],
+    ["The camera looks UP at Truman as he climbs the stairs at the end. What angle, and what effect?", "Low angle — powerful", ["High angle — weak", "Eye level — neutral", "Bird's-eye — controlled"], ""],
+    ["Seahaven's bright lighting with few shadows is called…", "High-key lighting", ["Low-key lighting", "Backlighting", "Chiaroscuro"], "It looks like a TV advert: perfect, but fake."],
+    ["Meryl advertises cocoa in the middle of a frightening fight. What technique does Weir use?", "Juxtaposition", ["Flashback", "Foreshadowing", "Symbolism"], "Putting the cheerful advert next to Truman's panic shows that sponsors matter more than his feelings."],
+    ["The audience knows Seahaven is fake but Truman does not. This is…", "Dramatic irony", ["Satire", "Paradox", "Allusion"], ""],
+    ["Water appears at the start (the father's drowning), the middle (the bridge) and the end (the storm). Water is a…", "Motif", ["Montage", "Prop", "Paradox"], "A motif repeats through the film. Water goes from prison to freedom."],
+    ["The EXIT door at the end is mainly a…", "Symbol of freedom and choice", ["Sound effect", "Flashback", "Product placement"], ""],
+    ["What does the name “Truman” suggest?", "True man", ["Tour man", "Trust man", "Tower man"], "He is the only real person in a fake world."],
+    ["The name “Christof” is an allusion to…", "Christ / God", ["Columbus", "Plato", "Shakespeare"], "Christof acts like a god: he controls the sun, the weather and Truman's life."],
+    ["Why is Truman's boat called the Santa Maria?", "It alludes to Columbus discovering a new world", ["It was Meryl's idea", "It's a product placement", "It's his father's name"], ""],
+    ["The film includes the TV show's own credits, interviews and title sequence. This structure is called…", "Show-within-a-show", ["Flashback", "Circular narrative", "Parallel editing"], "We watch people watching, so we see ourselves."],
+    ["Weir makes product placement loud and silly to criticise consumerism. This is…", "Satire", ["Tragedy", "Dramatic irony", "Foreshadowing"], "Satire mocks something in order to criticise it."],
+    ["Truman's catchphrase opens the film and returns at the end with a new meaning. This is…", "A callback (repetition)", ["A flashback", "A montage", "A cutaway"], ""],
+    ["In the storm, Truman is tied to the boat with his arms stretched out. What image does this suggest?", "A crucifixion", ["A surrender", "A hug", "A dance"], "It suggests sacrifice and defiance."],
+    ["Christof's voice speaks from the sky while he is not on screen. Best description?", "A disembodied voice from above", ["Direct address", "Montage", "Low-key lighting"], "He sounds like God speaking from heaven."],
+  ],
+  "Ideas, context and rubric": [
+    ["Which sentence best states Weir's argument about the media?", "The media shapes what people accept as real, and most people never question it.", ["The media is harmless fun.", "Reality TV is boring.", "Television should be banned."], ""],
+    ["Christof says, “We accept the reality of the world with which we're presented.” What idea does this express?", "People rarely question the world they are given", ["Reality TV is true", "Truman is happy", "The show will end soon"], ""],
+    ["“Nothing you see on this show is fake. It's merely controlled.” Which technique is this?", "Paradox", ["Simile", "Alliteration", "Hyperbole"], "It contradicts itself. Control IS a kind of fakeness."],
+    ["Christof shouts, “He was born in front of a live audience!” What does this show?", "He treats Truman's life and death as TV events", ["He loves Truman", "He wants to end the show", "He is joking"], "Commodification: a human life turned into a product."],
+    ["Why does Weir end on two guards changing the channel instead of Truman meeting Sylvia?", "To criticise the audience's short attention and make us complicit", ["To save money", "Because Sylvia leaves", "To set up a sequel"], ""],
+    ["Sylvia's badge says “How's it going to end?” Why is this clever?", "It speaks to Truman AND to us, the film's audience", ["It is a product placement", "It is a clue to Fiji", "It is Christof's slogan"], ""],
+    ["Which reality TV show began about a year after the film came out, making Weir look prescient?", "Big Brother", ["Survivor", "The Bachelor", "Love Island"], ""],
+    ["What inspired Seahaven's set design?", "Norman Rockwell paintings and old postcards", ["New York City", "Sydney", "Science fiction films"], "The “perfect” 1950s American Dream look makes it feel fake."],
+    ["The film is often compared to which philosophical idea?", "Plato's Allegory of the Cave", ["Darwin's evolution", "Newton's laws", "The Social Contract"], "People mistake shadows for reality. Truman leaves the “cave”."],
+    ["Psychiatrists named a real condition after the film. What is it?", "The Truman Show delusion: believing your life is being filmed", ["Seahaven syndrome", "Fear of water", "Christof complex"], ""],
+    ["According to NESA's guidelines, which response lands in the LOWEST band?", "One that relies on retelling the story", ["One that analyses film techniques", "One that uses personal voice", "One that uses the whole film"], ""],
+    ["Which is part of the EAL/D Module C rubric?", "How the composer manipulates the conventions of the text type", ["Comparing two texts from different contexts", "Writing a persuasive speech", "Analysing a poem's rhyme scheme"], ""],
+    ["Christof directs the father reunion: “Fade up the music … and now, a close up.” Why does this matter?", "Weir exposes how screen techniques manufacture emotion", ["It shows Christof is a good director", "It's a mistake in the film", "It explains the plot"], ""],
+    ["Truman says, “You never had a camera in my head!” What does he claim?", "His inner self is free from surveillance", ["The cameras are broken", "He wants more cameras", "He forgives Christof"], ""],
+    ["What does the teacher's line “There's really nothing left to explore” show?", "The show deliberately crushes Truman's dream of exploring", ["Truman is a bad student", "The teacher is Sylvia", "Fiji doesn't exist"], ""],
+    ["Truman notices Meryl's crossed fingers in their wedding photo. What does this reveal?", "Their marriage was a performance from the start", ["She was nervous", "It's good luck", "She loves him"], ""],
+    ["Why is “Somebody help me! I'm being spontaneous!” ironic?", "Being spontaneous should be normal, but in Seahaven it is rebellion", ["He is sad", "He is asking for a doctor", "Marlon is helping him"], ""],
+    ["Christof says, “Seahaven is the way the world should be.” What attitude does this show?", "He thinks controlling Truman protects him from a “sick” real world", ["He wants to leave Seahaven", "He hates Seahaven", "He agrees with Sylvia"], ""],
+    ["Sylvia says, “He's not a performer, he's a prisoner.” What technique is this?", "Antithesis (two opposite ideas side by side)", ["Onomatopoeia", "Rhetorical question", "Simile"], ""],
+    ["Why does Truman's catchphrase mean something different at the end?", "He now chooses to perform it as his own goodbye", ["He forgot the words", "Christof wrote it", "It's a mistake"], ""],
+  ],
+};
+
+const TMAN_LEVEL = {'Story and facts':'recall', 'Film techniques':'apply', 'Ideas, context and rubric':'analyse'};
+function tmanCards(){
+  const out = [];
+  Object.keys(TMAN_BANK).forEach(topic=>{
+    TMAN_BANK[topic].forEach(([q, a, wrong, why])=>{
+      out.push(makeCard(q, a, {wrong: wrong.slice(), why: why || '',
+                               topic, level: TMAN_LEVEL[topic] || 'recall'}));
+    });
+  });
+  return out;
+}
+const TMAN_NOTES = [
+  'TMAN — The Truman Show question bank.',
+  '',
+  'Sixty questions in three tiers: twenty on the story and the facts, twenty',
+  'on film technique, and twenty on ideas, context and the rubric.',
+  '',
+  'Peter Weir directed it in 1998; Andrew Niccol wrote it. Truman Burbank',
+  'lives in Seahaven, a set, watched by about five thousand hidden cameras,',
+  'and Christof directs his life from the Lunar Room. The show drowned',
+  'Truman’s father to give him a fear of water so he would never leave.',
+  '',
+  'The names carry meaning: Truman is the true man, the only real person in a',
+  'fake world. Christof controls the sun and the weather like a god. His boat',
+  'is the Santa Maria, Columbus’s ship, because the voyage is a discovery.',
+  '',
+  'It is compared to Plato’s Allegory of the Cave, and psychiatrists named a',
+  'real condition after it — the Truman Show delusion. Big Brother began about',
+  'a year after it came out.',
+].join('\n');
+
 function defaultSubjects(){
   /* Normalised on the way out. Only SAVED subjects used to be, so a fresh
      install started with a subject that had no terms, no syllabus and no exam
@@ -5502,6 +5615,11 @@ function defaultSubjects(){
     notes: TRUMAN_CONCEPT_NOTES,
     flashcards: trumanConceptCards(),
     terms: trumanConceptTerms(),
+  }), normalizeSubject({
+    id: 'tman', name: 'TMAN', icon: '📺',
+    builtin: 'tman',
+    notes: TMAN_NOTES,
+    flashcards: tmanCards(),
   })];
 }
 const SUBJECT_ICONS = [
@@ -5698,7 +5816,7 @@ async function loadAll(){
   const given = (await Storage.get('decksGiven', null)) || {};
   if(await Storage.get('ealdGiven', false)) given.eald = true;   /* the old single flag */
   let handedOut = false;
-  for(const id of ['eald','truman-vocab','truman-concepts']){
+  for(const id of ['eald','truman-vocab','truman-concepts','tman']){
     if(given[id]) continue;
     given[id] = true; handedOut = true;
     if(App.subjects.some(x=>x.builtin === id)) continue;

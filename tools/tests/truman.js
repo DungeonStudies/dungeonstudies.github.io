@@ -14,10 +14,24 @@ const {chromium}=require('playwright');
   await p.waitForTimeout(800);
   const r = await p.evaluate(()=>{
     const bad=[], log=[];
-    const want = ['truman-vocab','truman-concepts'];
+    const want = ['truman-vocab','truman-concepts','tman'];
     want.forEach(id=>{ if(!App.subjects.find(x=>x.id===id)) bad.push(id + ' is not in the game'); });
     /* and they are SEPARATE subjects, which is the whole request */
     if(App.subjects.filter(x=>/^truman-/.test(x.id)).length !== 2) bad.push('the two files were not kept apart');
+    /* TMAN is the player's own 60-question bank, and the options came with the
+       questions - so every one must have kept its four, unchanged */
+    const tm = App.subjects.find(x=>x.id==='tman');
+    if(tm){
+      if(tm.flashcards.length !== 60) bad.push('TMAN has ' + tm.flashcards.length + ' questions, not 60');
+      const tops = {};
+      tm.flashcards.forEach(c=>{ tops[c.topic] = (tops[c.topic]||0)+1; });
+      Object.keys(tops).forEach(k=>{ if(tops[k] !== 20) bad.push('TMAN tier "' + k + '" has ' + tops[k] + ', not 20'); });
+      if(Object.keys(tops).length !== 3) bad.push('TMAN has ' + Object.keys(tops).length + ' tiers, not 3');
+      const weir = tm.flashcards.find(c=>/Who directed/.test(c.front));
+      if(!weir) bad.push('TMAN lost the first question');
+      else if(weir.back !== 'Peter Weir') bad.push('TMAN answer changed: ' + weir.back);
+      else if((weir.wrong||[]).indexOf('Andrew Niccol') < 0) bad.push('TMAN lost a written distractor');
+    }
 
     want.forEach(id=>{
       const s = App.subjects.find(x=>x.id===id);
