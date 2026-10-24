@@ -863,6 +863,33 @@ body::after{ /* rock strata, chisel speckle, vignette */
   .swb-go{padding:5px 12px;font-size:11.5px;}
 }
 
+/* ===================== THE CLIMB =====================
+   The pips are the whole interface: ten of them, one a floor, so the rule -
+   all ten or back down - is visible before you can get it wrong. */
+.trial-head{display:grid;gap:8px;text-align:center;}
+.th-floor{font-family:var(--display);font-size:13px;letter-spacing:.16em;color:var(--text-faint);}
+.th-floor b{font-size:30px;color:#ffd978;letter-spacing:.04em;display:block;line-height:1.1;}
+.th-block{font-family:var(--mono);font-size:11px;color:var(--text-faint);}
+.th-pips{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:2px;}
+.th-pip{width:27px;height:27px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;color:var(--text-faint);
+  border:1px solid var(--hairline);background:rgba(255,255,255,.03);}
+.th-pip.hit{color:#121018;border-color:#8ff0bb;background:linear-gradient(158deg,#b6f5d1,#6ddfa3);font-weight:800;}
+.th-pip.miss{color:#121018;border-color:#ffa3b5;background:linear-gradient(158deg,#ffc2ce,#f4788f);font-weight:800;}
+.th-pip.now{border-color:#ffd978;box-shadow:0 0 0 2px rgba(255,217,120,.35);color:#ffd978;}
+.th-note{font-size:12.5px;color:var(--text-dim);}
+.trial-opts{display:grid;gap:9px;margin-top:4px;}
+.trial-opt{text-align:left;}
+.trial-opt.right{border-color:#8ff0bb;background:rgba(109,223,163,.16);color:#d8ffe9;}
+.trial-opt.wrong{border-color:#ffa3b5;background:rgba(244,120,143,.16);color:#ffdde3;}
+.trial-opt.dim{opacity:.45;}
+.trial-gate{text-align:center;}
+.trial-gate.open{border-color:rgba(255,217,120,.5);
+  background:radial-gradient(80% 60% at 50% 0%,rgba(232,182,76,.14),transparent 70%),
+             linear-gradient(158deg,rgba(44,38,62,.85),rgba(20,17,32,.9));}
+.trial-gate.shut{border-color:rgba(255,163,181,.4);}
+.trial-start,.trial-next{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
 /* the answer you missed, kept on screen with the Continue button rather than
    flashed past in the half second before the monster swings */
 .answer-card{margin:10px 0 2px;padding:12px 14px;border-radius:11px;
@@ -4971,6 +4998,9 @@ function defaultCharacter(){
     titanStat: null,
     cores: {t1:0, t2:0, t3:0, t4:0, boss:0}, gems: 0, materials: {}, blueprints: {}, blueprintItems: {},
     highestFloor: 0,
+    /* the climb: how high you have ever got, and today's gem tally */
+    trialBest: 1,
+    trialGems: {day:'', got:0},
     bossFloorsCleared: [],
     correctAnswerCount: 0, totalAnswered: 0,
     ngPlus: 0,
@@ -5705,12 +5735,15 @@ const App = {
   quizDiff: 'medium',
   pvpView: 'local',          // which side of the Arena bar you are on
   examResult: null,          // the marked paper, while you are reading it
+  trial: null,               // the climb, which owns its own world too
   pvp: null,                 // a local versus match, which owns its own world
 };
 
 function migrateCharacter(character){
   character = backfill(character, defaultCharacter());
   if(!CLASSES[character.classId]) character.classId = 'warrior';
+  if(typeof character.trialBest !== 'number') character.trialBest = 1;
+  if(!character.trialGems || typeof character.trialGems !== 'object') character.trialGems = {day:'', got:0};
   if(character.crystals){ addCoreTo(character,'t1', character.crystals); delete character.crystals; }
   if(character.diamonds){ character.gems = (character.gems||0) + character.diamonds; delete character.diamonds; }
   if(character.cores && character.cores.monster){ addCoreTo(character,'t1', character.cores.monster); delete character.cores.monster; }
@@ -8328,6 +8361,13 @@ const DIFFS = {
            blurb:'The full tables, four choices. Straight damage.'},
   hard:   {id:'hard',   label:'Hard',   icon:'🔴', opts:5, dmgMult:1.6,  takeMult:1.35, xpMult:1.8, energyBonus:1,
            blurb:'Big numbers, typed answer, no options. Hits hard — and so does the enemy — and a correct answer pays +1 ⚡.'},
+  /* THE CLIMB'S OWN SETTING, deliberately not in DIFF_IDS so it never turns
+     up in the round-by-round picker. Three choices, never a typed answer, and
+     no mastery bias either way - buildCardQuestion only special-cases 'easy'
+     and 'hard', so this one draws from the whole deck, which is the point of
+     a drill. */
+  trial:  {id:'trial',  label:'Trial',  icon:'\u{1F9D7}', opts:3, dmgMult:1, takeMult:1, xpMult:0, energyBonus:0,
+           blurb:'Three choices. Ten floors. All ten or back to the bottom.'},
 };
 const DIFF_IDS = ['easy','medium','hard'];
 function curDiff(){ return DIFFS[App.run.difficulty] || DIFFS.medium; }
@@ -9143,6 +9183,8 @@ function render(){
    off the bar while a floor is live, so the only way out of a fight is through
    it or by fleeing - not by wandering off to reshuffle a skill tree. */
 function inTheDungeon(){
+  /* the climb is not a run - you can walk out of it whenever you like, and
+     nothing in it can be lost, so it does not lock the bar */
   return App.topTab === 'play' && App.run && App.run.active
     && ['battle','loot','explore','checkpoint','loading','party',
         'dwarf_intro','dwarf_reward','dwarf_shop','dwarf_steal_warn','dwarf_gift','dwarf_result',
@@ -13857,6 +13899,10 @@ function renderDungeon(){
     case 'hurt': wrap.appendChild(renderHurt()); break;
     case 'index': wrap.appendChild(renderIndex()); break;
     case 'gemshop': wrap.appendChild(renderGemShop()); break;
+    case 'trial':
+      if(!App.trial) App.trial = defaultTrial();
+      wrap.appendChild(renderTrial());
+      break;
     case 'merchant': return renderMerchant();
     case 'dwarf_intro': wrap.appendChild(renderDwarfIntro()); break;
     case 'dwarf_reward': wrap.appendChild(renderDwarfReward()); break;
@@ -14765,6 +14811,7 @@ function renderHub(){
     ['🎒', 'Inventory', 'Gear, stash & artifacts', '', ()=>{ App.dungeonView='inventory'; render(); }, 'inventory'],
     ['🔨', 'Craft', 'Forge, enchant & ascend', '', ()=>{ App.dungeonView='craft'; render(); }, 'craft'],
     ['📖', 'Index', 'Discovered loot & foes', '', ()=>{ App.dungeonView='index'; render(); }, 'index'],
+    ['🧗', 'The Climb', 'Ten floors, ten out of ten', '', openTrial, 'trial'],
     ['💎', 'Gem Shop', 'One-run blessings', '', ()=>{ App.dungeonView='gemshop'; render(); }, 'gemshop'],
   ].forEach(([icon,label,sub,cls2,fn,tut])=>{
     const b = el(`<button class="px-btn hub-tile ${cls2}" data-tut="${tut}"><span class="ht-icon">${icon}</span><span class="ht-label">${label}</span><span class="ht-sub">${sub}</span></button>`);
@@ -18012,6 +18059,225 @@ function buyRunBonus(id){
   ch.gems -= def.cost;
   ch.runBonuses[id] = (ch.runBonuses[id]||0) + 1;
   saveCharacter(); render();
+}
+/* ===================== THE CLIMB =====================
+   A drill, not a dungeon. Ten floors to a block, one three-choice question a
+   floor, and the gate at the tenth only opens on 10 out of 10. Miss one
+   anywhere in the block and the gate sends you back to the bottom of THAT
+   BLOCK - not to the start of the climb, so the ground you have taken stays
+   taken, but the ten you are on have to be ten clean answers in a row.
+
+   That is the whole design and it is deliberately repetitive: the only way
+   past a block is to answer all ten of its questions correctly, which means
+   the ones you keep missing come round again and again until they stop being
+   the ones you keep missing.
+
+   The check is at the TENTH floor, not the moment you slip, so you still
+   answer every question in the block - another pass over the material you
+   just got wrong. The pips show where you stand so it is never a surprise.
+
+   It never ends. Block 1 is floors 1-10, block 2 is 11-20, and there is no
+   top: the deck cycles and the climb keeps going.
+   ===================================================== */
+const TRIAL_BLOCK = 10;            /* floors to a block */
+const TRIAL_GEMS_PER_BLOCK = 3;    /* a few, per block cleared */
+const TRIAL_GEM_CAP = 50;          /* ...and no more than this in a day */
+/* Clamped to the block. At the gate `step` has already ticked to ten, and
+   without the clamp the screen read FLOOR 11 while telling you the gate had
+   held and you were going back to floor 1. */
+function trialFloor(){
+  const t = App.trial;
+  const low = (t.block - 1) * TRIAL_BLOCK;
+  return low + Math.min(t.step + 1, TRIAL_BLOCK);
+}
+function trialToday(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+/* Today's tally, rolled over if the day has changed. Kept on the character so
+   it survives a reload; the cap is per day, not per run. */
+function trialGemsToday(){
+  const ch = App.character;
+  if(!ch.trialGems || ch.trialGems.day !== trialToday()) ch.trialGems = {day: trialToday(), got: 0};
+  return ch.trialGems.got;
+}
+function trialGemsLeft(){ return Math.max(0, TRIAL_GEM_CAP - trialGemsToday()); }
+function trialAwardGems(){
+  const want = TRIAL_GEMS_PER_BLOCK;
+  const give = Math.min(want, trialGemsLeft());
+  if(give > 0){
+    App.character.gems = (App.character.gems||0) + give;
+    App.character.trialGems.got += give;
+  }
+  return give;
+}
+function defaultTrial(){
+  return {block: 1, step: 0, wrong: 0, marks: [], q: null, picked: null,
+          phase: 'intro', note: '', gained: 0, cleared: false};
+}
+/* Enough distinct answers to fill three buttons? A deck of two cards cannot
+   make a three-choice question, and saying so is better than serving a
+   question with a blank option in it. */
+function trialPlayable(){
+  const srcs = questionSources();
+  if(srcs.some(x=>x.kind === 'mul')) return true;
+  const subj = realmSubject();
+  const cards = (subj && subj.flashcards) || [];
+  const terms = usableTerms(subj);
+  return (cards.length + terms.length) >= 4;
+}
+function trialNextQuestion(){
+  const t = App.trial;
+  t.q = buildQuestion('trial', questionSources(), {noWritten:true});
+  t.picked = null;
+  t.phase = 'question';
+}
+function openTrial(){
+  App.trial = defaultTrial();
+  App.trial.block = Math.max(1, App.character.trialBest || 1);
+  App.dungeonView = 'trial';
+  render();
+}
+function trialStart(){
+  const t = App.trial;
+  t.step = 0; t.wrong = 0; t.marks = []; t.note = ''; t.cleared = false; t.gained = 0;
+  trialNextQuestion();
+  render();
+}
+async function trialAnswer(choice){
+  const t = App.trial;
+  if(t.phase !== 'question' || t.picked !== null) return;
+  const right = choice === t.q.correct;
+  t.picked = choice;
+  t.marks.push(right);
+  if(!right) t.wrong++;
+  t.phase = 'reveal';
+  Sfx.play(right ? 'right' : 'wrong');
+  render();
+}
+/* The gate. Ten marks in hand: all ten, or back to the bottom of the block. */
+async function trialAdvance(){
+  const t = App.trial;
+  const ch = App.character;
+  t.step++;
+  if(t.step < TRIAL_BLOCK){ trialNextQuestion(); render(); return; }
+  /* the tenth is answered - the gate reads the block */
+  if(t.wrong === 0){
+    t.cleared = true;
+    t.gained = trialAwardGems();
+    ch.trialBest = Math.max(ch.trialBest || 1, t.block + 1);
+    await saveCharacter();
+    t.phase = 'gate';
+    Sfx.play('win');
+  } else {
+    t.cleared = false;
+    t.phase = 'gate';
+    Sfx.play('wrong');
+  }
+  render();
+}
+/* Through the gate, or back down it. */
+function trialThrough(){
+  const t = App.trial;
+  if(t.cleared) t.block++;
+  t.step = 0; t.wrong = 0; t.marks = []; t.cleared = false; t.gained = 0;
+  trialNextQuestion();
+  render();
+}
+function renderTrial(){
+  const t = App.trial, ch = App.character;
+  const outer = document.createDocumentFragment();
+  const back = el(`<button class="px-btn" style="margin-bottom:12px;">« Back to town</button>`);
+  back.addEventListener('click', ()=>{ App.dungeonView = 'hub'; render(); });
+  outer.appendChild(back);
+
+  if(!trialPlayable()){
+    outer.appendChild(el(`<div class="px-panel"><div class="dg-h1">THE CLIMB</div>
+      <p class="pvp-intro">This realm has not got enough material in it yet. The climb asks three-choice questions, so it needs at least four things to ask about — add notes or flashcards to <b>${escapeHtml(realmName())}</b> in Study and come back.</p></div>`));
+    const o = el('<div></div>'); o.appendChild(outer); return o;
+  }
+
+  if(t.phase === 'intro'){
+    outer.appendChild(el(`<div class="px-panel"><div class="dg-h1">THE CLIMB</div>
+      <p class="pvp-intro">Ten floors to a block, one question a floor, three choices. The gate at the tenth floor opens on <b>ten out of ten</b> — miss one anywhere in the block and it sends you back to the bottom of that block to climb it again.</p>
+      <p class="pvp-intro muted">That is the point. The only way past a block is ten clean answers in a row, so whatever you keep getting wrong comes back round until you stop getting it wrong. There is no top floor — the blocks keep going.</p>
+      <p class="pvp-intro muted">Clearing a block pays <b>${TRIAL_GEMS_PER_BLOCK} \u{1F48E}</b>, up to <b>${TRIAL_GEM_CAP} a day</b>. You have <b>${trialGemsLeft()}</b> of today's left. Nothing here can hurt you and nothing is spent — it does not touch your run.</p>
+      <div class="trial-start"></div></div>`));
+    const sb = outer.querySelector('.trial-start');
+    const go = el(`<button class="px-btn gold">${(ch.trialBest||1) > 1 ? 'Resume at floor ' + (((ch.trialBest||1)-1)*TRIAL_BLOCK + 1) : 'Begin the climb'}</button>`);
+    go.addEventListener('click', trialStart);
+    sb.appendChild(go);
+    if((ch.trialBest||1) > 1){
+      const fresh = el(`<button class="px-btn" style="margin-left:10px;">Start again from floor 1</button>`);
+      fresh.addEventListener('click', ()=>{ t.block = 1; trialStart(); });
+      sb.appendChild(fresh);
+    }
+    const o = el('<div></div>'); o.appendChild(outer); return o;
+  }
+
+  /* the climb itself */
+  const low = (t.block - 1) * TRIAL_BLOCK + 1, high = t.block * TRIAL_BLOCK;
+  const head = el(`<div class="px-panel trial-head">
+    <div class="th-floor">FLOOR <b>${trialFloor()}</b></div>
+    <div class="th-block">Block ${t.block} · floors ${low}–${high}</div>
+    <div class="th-pips"></div>
+    <div class="th-note">${t.wrong ? '✘ ' + t.wrong + ' missed — the gate will send you back to floor ' + low
+                                   : '✔ clean so far — ' + (TRIAL_BLOCK - t.marks.length) + ' to go'}</div>
+  </div>`);
+  const pips = head.querySelector('.th-pips');
+  for(let i = 0; i < TRIAL_BLOCK; i++){
+    const m = t.marks[i];
+    pips.appendChild(el(`<span class="th-pip${m === true ? ' hit' : (m === false ? ' miss' : '')}${i === t.marks.length && t.phase === 'question' ? ' now' : ''}">${
+      m === true ? '✔' : (m === false ? '✘' : (i+1))}</span>`));
+  }
+  outer.appendChild(head);
+
+  if(t.phase === 'gate'){
+    const panel = el(`<div class="px-panel trial-gate ${t.cleared ? 'open' : 'shut'}">
+      <div class="dg-h1">${t.cleared ? 'THE GATE OPENS' : 'THE GATE HOLDS'}</div>
+      <p class="pvp-intro">${t.cleared
+        ? 'Ten out of ten. Floor ' + high + ' is behind you — the way up is open.'
+        : 'You missed ' + t.wrong + ' of ten. Back to floor ' + low + ', and climb it clean.'}</p>
+      ${t.cleared && t.gained ? `<p class="pvp-intro"><b>+${t.gained} \u{1F48E}</b> — ${trialGemsLeft()} of today's ${TRIAL_GEM_CAP} left.</p>` : ''}
+      ${t.cleared && !t.gained ? `<p class="pvp-intro muted">No gems — you have had today's ${TRIAL_GEM_CAP}. The climb still counts.</p>` : ''}
+      <div class="trial-next"></div></div>`);
+    const nb = el(`<button class="px-btn gold">${t.cleared ? 'Climb on — floor ' + (high + 1) : 'Back to floor ' + low}</button>`);
+    nb.addEventListener('click', trialThrough);
+    panel.querySelector('.trial-next').appendChild(nb);
+    outer.appendChild(panel);
+    const o = el('<div></div>'); o.appendChild(outer); return o;
+  }
+
+  const q = t.q;
+  const qp = el(`<div class="px-panel qbody">
+    <div class="qtag">${escapeHtml(q.topic || realmName())}</div>
+    <div class="qtext">${escapeHtml(q.prompt)}</div>
+    <div class="trial-opts"></div>
+  </div>`);
+  const ob = qp.querySelector('.trial-opts');
+  (q.options||[]).forEach(opt=>{
+    const chosen = t.picked === opt;
+    const isRight = opt === q.correct;
+    const cls = t.phase === 'reveal' ? (isRight ? ' right' : (chosen ? ' wrong' : ' dim')) : '';
+    const b = el(`<button class="mcq-opt trial-opt${cls}"${t.phase === 'reveal' ? ' disabled' : ''}>${escapeHtml(String(opt))}</button>`);
+    if(t.phase === 'question') b.addEventListener('click', ()=>trialAnswer(opt));
+    ob.appendChild(b);
+  });
+  outer.appendChild(qp);
+
+  if(t.phase === 'reveal'){
+    const ok = t.marks[t.marks.length-1];
+    const fb = el(`<div class="px-panel">
+      <div class="feedback-msg ${ok ? 'good' : 'bad'}">${ok ? '✔ Correct' : '✘ Wrong — the answer was: ' + escapeHtml(String(q.correct))}</div>
+      ${!ok && q.why ? `<div class="ac-why">${escapeHtml(String(q.why))}</div>` : ''}
+      <div class="trial-next" style="margin-top:12px;"></div></div>`);
+    const nb = el(`<button class="px-btn gold">${t.step + 1 >= TRIAL_BLOCK ? 'Face the gate' : 'Next floor'}</button>`);
+    nb.addEventListener('click', trialAdvance);
+    fb.querySelector('.trial-next').appendChild(nb);
+    outer.appendChild(fb);
+  }
+
+  const o = el('<div></div>'); o.appendChild(outer); return o;
 }
 function renderGemShop(){
   const ch = App.character;
