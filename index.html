@@ -878,11 +878,50 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .th-pip.miss{color:#121018;border-color:#ffa3b5;background:linear-gradient(158deg,#ffc2ce,#f4788f);font-weight:800;}
 .th-pip.now{border-color:#ffd978;box-shadow:0 0 0 2px rgba(255,217,120,.35);color:#ffd978;}
 .th-note{font-size:12.5px;color:var(--text-dim);}
-.trial-opts{display:grid;gap:9px;margin-top:4px;}
-.trial-opt{text-align:left;}
-.trial-opt.right{border-color:#8ff0bb;background:rgba(109,223,163,.16);color:#d8ffe9;}
-.trial-opt.wrong{border-color:#ffa3b5;background:rgba(244,120,143,.16);color:#ffdde3;}
-.trial-opt.dim{opacity:.45;}
+/* THE HALL. Three doors, the answer nailed to each, and you walk through one.
+   The door stretches with its board, because an answer can be two words or
+   two lines and the ironwork has to stay put either way. */
+.trial-q{text-align:center;}
+.trial-hall{display:flex;justify-content:center;align-items:stretch;gap:16px;margin-top:14px;}
+.trial-door{position:relative;flex:1 1 0;min-width:0;max-width:196px;
+  display:flex;align-items:center;justify-content:center;
+  min-height:286px;padding:98px 14px 58px;border:none;background:none;cursor:pointer;
+  transition:transform .16s,filter .16s;}
+.trial-door .td-svg{position:absolute;inset:0;width:100%;height:100%;
+  filter:drop-shadow(0 14px 22px rgba(0,0,0,.55));}
+.trial-door:hover{transform:translateY(-4px);}
+.trial-door:hover .td-svg{filter:drop-shadow(0 18px 26px rgba(0,0,0,.6)) brightness(1.18);}
+.td-board{position:relative;z-index:2;display:block;max-width:100%;
+  padding:9px 10px;border-radius:5px;
+  background:linear-gradient(158deg,#d8c49a,#b89f72);
+  border:2px solid #7a6038;box-shadow:0 3px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.4);
+  font-family:var(--ui);font-weight:800;font-size:13.5px;line-height:1.35;color:#2a1f10;
+  text-align:center;word-break:break-word;}
+.trial-door.open .td-board{background:linear-gradient(158deg,#f6e7bd,#e2cb94);border-color:#9a7a44;}
+.trial-door.shut .td-board{background:linear-gradient(158deg,#e8b9c2,#d0909d);border-color:#8a5460;}
+.trial-door.dim{opacity:.4;}
+.trial-door[disabled]{cursor:default;}
+.trial-door[disabled]:hover{transform:none;}
+.td-mark{position:absolute;top:7%;left:50%;transform:translateX(-50%);z-index:3;
+  font-size:22px;line-height:1;color:#8ff0bb;
+  text-shadow:0 0 8px rgba(0,0,0,.9), 0 2px 6px rgba(0,0,0,.7);}
+.td-mark.bad{color:#ffa3b5;}
+.trial-door.open{animation:doorPop .34s ease-out;}
+@keyframes doorPop{from{transform:scale(.95);}to{transform:scale(1);}}
+.trial-door.shut{animation:doorNo .34s ease-out;}
+@keyframes doorNo{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+.play-pick{margin-bottom:16px;}
+@media (max-width:620px){
+  .trial-hall{gap:8px;}
+  .trial-door{max-width:none;min-height:208px;padding:70px 11px 42px;}
+  .td-board{font-size:11.5px;padding:7px 6px;}
+}
+@media (max-height:560px) and (orientation:landscape){
+  .trial-door{min-height:164px;padding:56px 8px 34px;}
+  .td-board{font-size:11px;padding:6px 7px;}
+  .th-floor b{font-size:22px;}
+  .th-pip{width:22px;height:22px;font-size:10px;}
+}
 .trial-gate{text-align:center;}
 .trial-gate.open{border-color:rgba(255,217,120,.5);
   background:radial-gradient(80% 60% at 50% 0%,rgba(232,182,76,.14),transparent 70%),
@@ -5735,6 +5774,7 @@ const App = {
   quizDiff: 'medium',
   pvpView: 'local',          // which side of the Arena bar you are on
   examResult: null,          // the marked paper, while you are reading it
+  playMode: 'dungeon',       // which half of Play you are looking at
   trial: null,               // the climb, which owns its own world too
   pvp: null,                 // a local versus match, which owns its own world
 };
@@ -9164,7 +9204,7 @@ function render(){
   else if(App.topTab==='settings') panel.appendChild(renderAiSettings());
   else if(App.topTab==='pvp') panel.appendChild(renderPvpTab());
   else if(App.topTab==='characters') panel.appendChild(renderCharactersScreen());
-  else panel.appendChild(renderDungeon());
+  else panel.appendChild(renderPlayTab());
   /* whatever is in front of you decides whether anything is making a noise */
   if(App.topTab === 'play' && App.dungeonView === 'battle' && App.run && App.run.active){
     ambientFor(App.run.monster);
@@ -13881,6 +13921,40 @@ function renderRealmSelect(){
 
   const o = el('<div></div>'); o.appendChild(outer); return o;
 }
+/* WHERE THE CLIMB LIVES.
+   Beside the dungeon, not inside it. They are two different things to do with
+   a subject - one is a run you can lose, the other is a drill you cannot - so
+   the choice belongs at the top of Play rather than buried behind the town.
+   Mid-run the switch disappears: a live floor keeps the screen to itself, the
+   same way it keeps the tab bar. */
+function renderPlayTab(){
+  const wrap = el('<div></div>');
+  if(!inTheDungeon() && App.dungeonView !== 'finale'){
+    const pick = el(`<div class="arena-pick play-pick"></div>`);
+    [['dungeon','\u2694','Dungeon'], ['climb','\u{1F6AA}','The Climb']].forEach(([id,icon,label])=>{
+      const b = el(`<button class="arena-card${App.playMode===id?' on':''}" data-tut="play${id}">${icon} ${escapeHtml(label)}</button>`);
+      b.addEventListener('click', ()=>setPlayMode(id));
+      pick.appendChild(b);
+    });
+    wrap.appendChild(pick);
+  }
+  if(App.playMode === 'climb'){
+    if(!App.trial) trialReset();
+    const w2 = el(`<div class="dg-wrap"></div>`);
+    w2.appendChild(renderTrial());
+    wrap.appendChild(w2);
+    return wrap;
+  }
+  wrap.appendChild(renderDungeon());
+  return wrap;
+}
+function setPlayMode(id){
+  if(App.playMode === id) return;
+  if(inTheDungeon()) return;            /* not mid-floor, you do not */
+  App.playMode = id;
+  if(id === 'climb' && !App.trial) trialReset();
+  render();
+}
 function renderDungeon(){
   const wrap = el(`<div class="dg-wrap"></div>`);
   switch(App.dungeonView){
@@ -13899,10 +13973,6 @@ function renderDungeon(){
     case 'hurt': wrap.appendChild(renderHurt()); break;
     case 'index': wrap.appendChild(renderIndex()); break;
     case 'gemshop': wrap.appendChild(renderGemShop()); break;
-    case 'trial':
-      if(!App.trial) App.trial = defaultTrial();
-      wrap.appendChild(renderTrial());
-      break;
     case 'merchant': return renderMerchant();
     case 'dwarf_intro': wrap.appendChild(renderDwarfIntro()); break;
     case 'dwarf_reward': wrap.appendChild(renderDwarfReward()); break;
@@ -14811,7 +14881,6 @@ function renderHub(){
     ['🎒', 'Inventory', 'Gear, stash & artifacts', '', ()=>{ App.dungeonView='inventory'; render(); }, 'inventory'],
     ['🔨', 'Craft', 'Forge, enchant & ascend', '', ()=>{ App.dungeonView='craft'; render(); }, 'craft'],
     ['📖', 'Index', 'Discovered loot & foes', '', ()=>{ App.dungeonView='index'; render(); }, 'index'],
-    ['🧗', 'The Climb', 'Ten floors, ten out of ten', '', openTrial, 'trial'],
     ['💎', 'Gem Shop', 'One-run blessings', '', ()=>{ App.dungeonView='gemshop'; render(); }, 'gemshop'],
   ].forEach(([icon,label,sub,cls2,fn,tut])=>{
     const b = el(`<button class="px-btn hub-tile ${cls2}" data-tut="${tut}"><span class="ht-icon">${icon}</span><span class="ht-label">${label}</span><span class="ht-sub">${sub}</span></button>`);
@@ -18126,16 +18195,56 @@ function trialPlayable(){
   const terms = usableTerms(subj);
   return (cards.length + terms.length) >= 4;
 }
+/* THE DOORS.
+   Three of them, with the answer printed on a board nailed to each. You are
+   not fighting anything down here - you read the question, you read the
+   doors, and you walk through one. Getting it wrong is a door that will not
+   open, not a monster that hits you.
+
+   The door is drawn rather than written out as pixels because it has to
+   stretch: an answer can be two words or two lines, and the board grows with
+   the text while the arch, the planks and the ironwork stay put. */
+function doorSvg(state){
+  const wood  = state === 'open' ? '#6b5636' : '#4a3a24';
+  const wood2 = state === 'open' ? '#8a7047' : '#5d4930';
+  const iron  = state === 'open' ? '#8f9099' : '#6a6b73';
+  const glow  = state === 'open' ? '#ffe49a' : (state === 'shut' ? '#f4788f' : '#2a2436');
+  /* The door stops at y=94 and a stone threshold runs under it, so it stands
+     on something instead of being sliced off by the edge of its own box. */
+  return `<svg class="td-svg" viewBox="0 0 64 104" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M4 94 L4 34 Q4 6 32 6 Q60 6 60 34 L60 94 Z" fill="#1a1626"/>
+    <path d="M8 94 L8 35 Q8 11 32 11 Q56 11 56 35 L56 94 Z" fill="${glow}"/>
+    <path d="M11 94 L11 36 Q11 14 32 14 Q53 14 53 36 L53 94 Z" fill="${wood}"/>
+    <g fill="${wood2}">
+      <rect x="13" y="30" width="7" height="64"/>
+      <rect x="28" y="20" width="7" height="74"/>
+      <rect x="43" y="30" width="7" height="64"/>
+    </g>
+    <g fill="${iron}">
+      <rect x="11" y="44" width="42" height="5"/>
+      <rect x="11" y="76" width="42" height="5"/>
+      <circle cx="46" cy="62" r="3.4"/>
+    </g>
+    <path d="M11 36 Q11 14 32 14 Q53 14 53 36" fill="none" stroke="${iron}" stroke-width="2.5"/>
+    <rect x="1" y="94" width="62" height="6" fill="#2a2536"/>
+    <rect x="1" y="94" width="62" height="2" fill="#3b3550"/>
+    <rect x="0" y="100" width="64" height="4" fill="#15121f"/>
+  </svg>`;
+}
 function trialNextQuestion(){
   const t = App.trial;
   t.q = buildQuestion('trial', questionSources(), {noWritten:true});
   t.picked = null;
   t.phase = 'question';
 }
-function openTrial(){
+function trialReset(){
   App.trial = defaultTrial();
   App.trial.block = Math.max(1, App.character.trialBest || 1);
-  App.dungeonView = 'trial';
+  return App.trial;
+}
+function openTrial(){
+  trialReset();
+  App.playMode = 'climb';
   render();
 }
 function trialStart(){
@@ -18187,9 +18296,6 @@ function trialThrough(){
 function renderTrial(){
   const t = App.trial, ch = App.character;
   const outer = document.createDocumentFragment();
-  const back = el(`<button class="px-btn" style="margin-bottom:12px;">« Back to town</button>`);
-  back.addEventListener('click', ()=>{ App.dungeonView = 'hub'; render(); });
-  outer.appendChild(back);
 
   if(!trialPlayable()){
     outer.appendChild(el(`<div class="px-panel"><div class="dg-h1">THE CLIMB</div>
@@ -18249,21 +18355,29 @@ function renderTrial(){
   }
 
   const q = t.q;
-  const qp = el(`<div class="px-panel qbody">
+  const qp = el(`<div class="px-panel qbody trial-q">
     <div class="qtag">${escapeHtml(q.topic || realmName())}</div>
     <div class="qtext">${escapeHtml(q.prompt)}</div>
-    <div class="trial-opts"></div>
   </div>`);
-  const ob = qp.querySelector('.trial-opts');
+  outer.appendChild(qp);
+
+  /* three doors, the answer nailed to each */
+  const hall = el(`<div class="trial-hall"></div>`);
   (q.options||[]).forEach(opt=>{
     const chosen = t.picked === opt;
     const isRight = opt === q.correct;
-    const cls = t.phase === 'reveal' ? (isRight ? ' right' : (chosen ? ' wrong' : ' dim')) : '';
-    const b = el(`<button class="mcq-opt trial-opt${cls}"${t.phase === 'reveal' ? ' disabled' : ''}>${escapeHtml(String(opt))}</button>`);
-    if(t.phase === 'question') b.addEventListener('click', ()=>trialAnswer(opt));
-    ob.appendChild(b);
+    const state = t.phase !== 'reveal' ? 'idle' : (isRight ? 'open' : (chosen ? 'shut' : 'idle'));
+    const cls = t.phase !== 'reveal' ? '' : (isRight ? ' open' : (chosen ? ' shut' : ' dim'));
+    const d = el(`<button class="trial-door${cls}"${t.phase === 'reveal' ? ' disabled' : ''}>
+      ${doorSvg(state)}
+      <span class="td-board">${escapeHtml(String(opt))}</span>
+      ${state === 'open' ? '<span class="td-mark">\u2714</span>' : ''}
+      ${state === 'shut' ? '<span class="td-mark bad">\u2718</span>' : ''}
+    </button>`);
+    if(t.phase === 'question') d.addEventListener('click', ()=>trialAnswer(opt));
+    hall.appendChild(d);
   });
-  outer.appendChild(qp);
+  outer.appendChild(hall);
 
   if(t.phase === 'reveal'){
     const ok = t.marks[t.marks.length-1];

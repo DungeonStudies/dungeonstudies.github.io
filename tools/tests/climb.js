@@ -4,7 +4,10 @@ const {chromium}=require('playwright');
    block moves you up and pays gems, a block with any miss drops you back to
    the BOTTOM OF THAT BLOCK rather than to the start of the climb, the gate
    checks at the tenth floor and not the moment you slip, the gems stop at
-   fifty a day, and none of it touches the dungeon run. */
+   fifty a day, and none of it touches the dungeon run.
+
+   The climb sits in Play beside the dungeon, not inside it, and you answer by
+   picking one of three doors with the answer written on it. */
 (async()=>{
   const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--headless=new']});
   const p=await b.newPage({viewport:{width:1000,height:950}});
@@ -21,8 +24,37 @@ const {chromium}=require('playwright');
     App.character.gems = 0; App.character.trialBest = 1;
     App.character.trialGems = {day:'', got:0};
 
+    /* --- the climb is a mode of Play, reached from the switch above it --- */
+    setTopTab('play'); await wait(60);
+    const pick = [...document.querySelectorAll('.play-pick .arena-card')];
+    log.push(['the play switch', pick.map(b=>b.textContent.trim()).join(' | ') || 'MISSING']);
+    if(pick.length !== 2) bad.push('the play switch does not offer two modes: ' + pick.length);
+    const climbBtn = pick.find(b=>/climb/i.test(b.textContent));
+    if(!climbBtn) bad.push('there is no climb button in Play');
+    else { climbBtn.click(); await wait(80); }
+    if(App.playMode !== 'climb') bad.push('the switch did not put Play into the climb: ' + App.playMode);
+    if(App.dungeonView === 'trial') bad.push('the climb is still a dungeon view');
+    if(!document.querySelector('.trial-start')) bad.push('the climb did not render in the Play tab');
+    if(document.querySelector('.dg-realms, .realm-card')) bad.push('the dungeon is still rendered under the climb');
+
+    /* the switch picks up where you left off, and crossing to the dungeon and
+       back does not wipe a block you are part way through */
+    App.playMode = 'dungeon'; App.trial = null;
+    App.character.trialBest = 4;
+    setPlayMode('climb'); await wait(60);
+    if(!App.trial || App.trial.block !== 4) bad.push('the switch started at block ' + (App.trial&&App.trial.block) + ', not the best of 4');
+    trialStart(); await wait(20);
+    await trialAnswer(App.trial.q.correct); await wait(10);
+    await trialAdvance(); await wait(10);
+    const midStep = App.trial.step;
+    setPlayMode('dungeon'); await wait(40);
+    setPlayMode('climb'); await wait(40);
+    if(App.trial.step !== midStep || App.trial.block !== 4) bad.push('crossing to the dungeon and back wiped the climb');
+    log.push(['crossing over', 'block ' + App.trial.block + ' at step ' + App.trial.step + ' survives the switch']);
+    App.character.trialBest = 1;
+
     openTrial(); await wait(60);
-    if(App.dungeonView !== 'trial') bad.push('the hub tile did not open the climb');
+    if(App.playMode !== 'climb') bad.push('openTrial did not put Play into the climb');
     if(!trialPlayable()) bad.push('a realm with 225 cards says it cannot be climbed');
 
     /* every question is three choices, never typed */
@@ -34,6 +66,41 @@ const {chromium}=require('playwright');
     }
     log.push(['question shape', [...shapes].join(' ')]);
     if([...shapes].some(x=>!/^3\/mcq$/.test(x))) bad.push('not every question is three-choice multiple choice: ' + [...shapes].join(' '));
+
+    /* --- three doors, the answer printed on each --- */
+    trialStart(); await wait(60);
+    let doors = [...document.querySelectorAll('.trial-door')];
+    if(doors.length !== 3) bad.push('there are ' + doors.length + ' doors, not 3');
+    const printed = doors.map(d=>(d.querySelector('.td-board')||{}).textContent || '');
+    const want = (App.trial.q.options||[]).map(String);
+    log.push(['the doors', printed.join(' | ')]);
+    if(printed.some(t=>!t.trim())) bad.push('a door has no answer printed on it');
+    if(JSON.stringify(printed) !== JSON.stringify(want)) bad.push('the doors do not carry the options: ' + printed.join('|') + ' vs ' + want.join('|'));
+    if(doors.some(d=>!d.querySelector('.td-svg'))) bad.push('a door is missing its door');
+    if(doors.some(d=>d.disabled)) bad.push('the doors are shut before you have picked');
+
+    /* picking the right one swings it open and shuts the others */
+    const rightIdx = want.indexOf(String(App.trial.q.correct));
+    doors[rightIdx].click(); await wait(120);
+    doors = [...document.querySelectorAll('.trial-door')];
+    if(!doors[rightIdx].classList.contains('open')) bad.push('the right door did not open');
+    if(doors.some((d,i)=>i !== rightIdx && d.classList.contains('open'))) bad.push('a wrong door opened too');
+    if(!doors[rightIdx].querySelector('.td-mark')) bad.push('the opened door is not marked');
+    if(doors.some(d=>!d.disabled)) bad.push('a door is still pickable after the reveal');
+    log.push(['a right pick', 'door ' + (rightIdx+1) + ' opens, the rest hold']);
+
+    /* picking a wrong one shuts it AND still shows which door was the way on */
+    await trialAdvance(); await wait(60);
+    const want2 = (App.trial.q.options||[]).map(String);
+    const right2 = want2.indexOf(String(App.trial.q.correct));
+    const wrong2 = want2.findIndex((o,i)=>i !== right2);
+    [...document.querySelectorAll('.trial-door')][wrong2].click(); await wait(120);
+    doors = [...document.querySelectorAll('.trial-door')];
+    if(!doors[wrong2].classList.contains('shut')) bad.push('the wrong door did not shut');
+    if(!doors[right2].classList.contains('open')) bad.push('a wrong pick did not show the way on');
+    if(!/td-mark bad|class="td-mark bad"/.test(doors[wrong2].innerHTML)) bad.push('the wrong door is not marked wrong');
+    log.push(['a wrong pick', 'door ' + (wrong2+1) + ' shuts, door ' + (right2+1) + ' shows the way']);
+    await trialAdvance(); await wait(40);
 
     /* --- a clean block opens the gate, moves you up, and pays --- */
     const climb = async (missAt)=>{
@@ -92,14 +159,17 @@ const {chromium}=require('playwright');
     if(trialGemsLeft() !== 50) bad.push('yesterday’s tally did not roll over: ' + trialGemsLeft());
     log.push(['a new day', trialGemsLeft() + ' gems available again']);
 
-    /* --- and none of it touches the dungeon --- */
-    App.character.classId='warrior'; startRun();
+    /* --- and a run in progress locks the switch, same as the Play tab does --- */
+    App.playMode = 'dungeon';
+    App.character.classId='warrior'; startRun(); await wait(60);
     const runFloor = App.run.floor, runHp = App.run.hp;
-    openTrial(); trialStart(); await wait(20);
-    await trialAnswer(App.trial.q.options.find(o=>o !== App.trial.q.correct)); await wait(20);
+    setTopTab('play'); await wait(60);
+    if(document.querySelector('.play-pick')) bad.push('the mode switch is still offered mid-run — you must flee');
+    setPlayMode('climb'); await wait(40);
+    if(App.playMode !== 'dungeon') bad.push('the switch walked out of a live run');
     if(App.run.floor !== runFloor || App.run.hp !== runHp) bad.push('the climb changed the dungeon run');
     if(App.run.active === false) bad.push('the climb ended the run');
-    log.push(['the run', 'floor ' + App.run.floor + ', hp ' + App.run.hp + ' — untouched']);
+    log.push(['mid-run', 'switch hidden and refused, floor ' + App.run.floor + ', hp ' + App.run.hp]);
     return {bad, log};
   });
   (r.log||[]).forEach(x=>console.log(' ', String(x[0]).padEnd(18), x[1]));
