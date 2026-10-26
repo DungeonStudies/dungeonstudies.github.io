@@ -159,6 +159,75 @@ const {chromium}=require('playwright');
     if(trialGemsLeft() !== 50) bad.push('yesterday’s tally did not roll over: ' + trialGemsLeft());
     log.push(['a new day', trialGemsLeft() + ' gems available again']);
 
+    /* --- the sign holds whatever the deck says --- */
+    if(boardFit(['Tone']) !== '') bad.push('a short answer was shrunk');
+    if(boardFit(['x'.repeat(30)]) !== ' t-long') bad.push('a 30-char answer did not step down a size');
+    if(boardFit(['x'.repeat(60)]) !== ' t-xlong') bad.push('a 60-char answer did not step down twice');
+    if(boardFit(['x'.repeat(100)]) !== ' t-huge') bad.push('a 100-char answer did not step down three times');
+    if(boardFit(['a', 'b', 'x'.repeat(100)]) !== ' t-huge') bad.push('the longest of the three does not set the size');
+
+    /* and a long one really does fit on the leaf rather than spilling off it */
+    trialStart(); await wait(40);
+    App.trial.q = {mode:'mcq', prompt:'A long one', topic:'Fit',
+      correct:'A short paragraph or two making two or three points with three or more examples, about nine or ten minutes of writing',
+      options:['A short paragraph or two making two or three points with three or more examples, about nine or ten minutes of writing',
+               'One example and the effect it has on the reader, written out in a single complete sentence',
+               'A single sentence']};
+    App.trial.picked = null; App.trial.phase = 'question';
+    render(); await wait(80);
+    let fitDoors = [...document.querySelectorAll('.trial-door')];
+    const tiers = fitDoors.map(d=>['t-long','t-xlong','t-huge'].find(c=>d.classList.contains(c)) || 'plain');
+    log.push(['long answers', tiers.join(' / ')]);
+    if(new Set(tiers).size !== 1) bad.push('the three signs are different sizes: ' + tiers.join(','));
+    if(tiers[0] !== 't-huge') bad.push('a 124-char answer did not take the smallest face: ' + tiers[0]);
+    fitDoors.forEach((d,i)=>{
+      const bd = d.querySelector('.td-board');
+      if(!bd) { bad.push('door ' + (i+1) + ' lost its sign'); return; }
+      if(bd.scrollHeight > bd.clientHeight + 1) bad.push('door ' + (i+1) + ' clips its answer (' + bd.scrollHeight + ' into ' + bd.clientHeight + ')');
+      if(bd.scrollWidth > bd.clientWidth + 1) bad.push('door ' + (i+1) + ' clips its answer sideways');
+      const db = d.getBoundingClientRect(), bb = bd.getBoundingClientRect();
+      if(bb.top < db.top || bb.bottom > db.bottom) bad.push('door ' + (i+1) + ' has its sign hanging off the door');
+    });
+    log.push(['the fit', 'all three signs inside their doors, nothing clipped']);
+
+    /* --- leaving is not pausing: it puts you back at zero --- */
+    const realConfirm = window.confirm;
+    if(!document.querySelector('.trial-leave')) bad.push('there is no leave button on the climb');
+    App.character.trialBest = 6; App.trial = null; App.playMode = 'dungeon';
+    setPlayMode('climb'); await wait(40);
+    if(!document.querySelector('.trial-leave')) bad.push('there is no leave button on the climb intro');
+    trialStart(); await wait(20);
+    await trialAnswer(App.trial.q.correct); await wait(10);
+    await trialAdvance(); await wait(10);
+
+    /* said no - nothing moves */
+    window.confirm = ()=>false;
+    const keptBlock = App.trial.block, keptStep = App.trial.step;
+    await trialLeave(); await wait(40);
+    if(App.character.trialBest !== 6) bad.push('a declined leave still reset the best block');
+    if(App.trial.block !== keptBlock || App.trial.step !== keptStep) bad.push('a declined leave still reset the climb');
+    if(App.playMode !== 'climb') bad.push('a declined leave still walked out');
+    log.push(['leave, declined', 'block ' + App.trial.block + ' at step ' + App.trial.step + ' untouched']);
+
+    /* said yes - back to zero */
+    window.confirm = ()=>true;
+    App.character.gems = 17;
+    await trialLeave(); await wait(60);
+    if(App.character.trialBest !== 1) bad.push('leaving did not reset the best block: ' + App.character.trialBest);
+    if(App.trial.block !== 1) bad.push('leaving left you on block ' + App.trial.block);
+    if(App.trial.step !== 0 || App.trial.wrong !== 0 || App.trial.marks.length) bad.push('leaving did not clear the block in hand');
+    if(App.trial.phase !== 'intro') bad.push('leaving did not put the climb back to its intro');
+    if(App.playMode !== 'dungeon') bad.push('leaving did not actually leave: ' + App.playMode);
+    if(App.character.gems !== 17) bad.push('leaving took gems that had already been paid');
+    log.push(['leave, taken', 'block 1, floor ' + trialFloor() + ', best reset, gems kept']);
+
+    /* and it holds across a reload, not just in memory */
+    await saveCharacter();
+    const stored = await Storage.get('character', null);
+    if(stored && (stored.trialBest || 1) !== 1) bad.push('the reset was not saved: stored best is ' + stored.trialBest);
+    log.push(['saved', 'stored best is ' + ((stored && stored.trialBest) || 1)]);
+    window.confirm = realConfirm;
+
     /* --- and a run in progress locks the switch, same as the Play tab does --- */
     App.playMode = 'dungeon';
     App.character.classId='warrior'; startRun(); await wait(60);

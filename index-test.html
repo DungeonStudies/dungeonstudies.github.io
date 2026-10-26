@@ -878,6 +878,9 @@ body::after{ /* rock strata, chisel speckle, vignette */
 .th-pip.miss{color:#121018;border-color:#ffa3b5;background:linear-gradient(158deg,#ffc2ce,#f4788f);font-weight:800;}
 .th-pip.now{border-color:#ffd978;box-shadow:0 0 0 2px rgba(255,217,120,.35);color:#ffd978;}
 .th-note{font-size:12.5px;color:var(--text-dim);}
+.th-leave{margin-top:4px;}
+.trial-leave{opacity:.75;}
+.trial-leave:hover{opacity:1;}
 /* THE HALL. Three doors, the answer nailed to each, and you walk through one.
    The door stretches with its board, because an answer can be two words or
    two lines and the ironwork has to stay put either way. */
@@ -906,6 +909,12 @@ body::after{ /* rock strata, chisel speckle, vignette */
   font-size:22px;line-height:1;color:#8ff0bb;
   text-shadow:0 0 8px rgba(0,0,0,.9), 0 2px 6px rgba(0,0,0,.7);}
 .td-mark.bad{color:#ffa3b5;}
+.trial-door.t-long{padding:86px 11px 50px;}
+.trial-door.t-long .td-board{font-size:12.5px;}
+.trial-door.t-xlong{padding:76px 9px 44px;}
+.trial-door.t-xlong .td-board{font-size:11.5px;line-height:1.3;padding:8px 7px;}
+.trial-door.t-huge{padding:64px 8px 38px;}
+.trial-door.t-huge .td-board{font-size:10.5px;line-height:1.28;padding:7px 6px;}
 .trial-door.open{animation:doorPop .34s ease-out;}
 @keyframes doorPop{from{transform:scale(.95);}to{transform:scale(1);}}
 .trial-door.shut{animation:doorNo .34s ease-out;}
@@ -915,10 +924,19 @@ body::after{ /* rock strata, chisel speckle, vignette */
   .trial-hall{gap:8px;}
   .trial-door{max-width:none;min-height:208px;padding:70px 11px 42px;}
   .td-board{font-size:11.5px;padding:7px 6px;}
+  .trial-door.t-long{padding:62px 7px 38px;}
+  .trial-door.t-long .td-board{font-size:10.5px;}
+  .trial-door.t-xlong{padding:54px 5px 32px;}
+  .trial-door.t-xlong .td-board{font-size:9.5px;line-height:1.28;padding:6px 4px;}
+  .trial-door.t-huge{padding:46px 4px 28px;}
+  .trial-door.t-huge .td-board{font-size:8.5px;line-height:1.25;padding:5px 3px;}
 }
 @media (max-height:560px) and (orientation:landscape){
   .trial-door{min-height:164px;padding:56px 8px 34px;}
   .td-board{font-size:11px;padding:6px 7px;}
+  .trial-door.t-long{padding:48px 7px 30px;}
+  .trial-door.t-xlong{padding:42px 6px 26px;}
+  .trial-door.t-huge{padding:36px 5px 22px;}
   .th-floor b{font-size:22px;}
   .th-pip{width:22px;height:22px;font-size:10px;}
 }
@@ -18231,6 +18249,15 @@ function doorSvg(state){
     <rect x="0" y="100" width="64" height="4" fill="#15121f"/>
   </svg>`;
 }
+/* An answer can be two words or a whole sentence, and all three signs have to
+   match or the hall looks broken - so the longest of the three decides the
+   face size for every door, and the door gives back some of its padding to
+   make room. Without this a long answer either spilled off the leaf or
+   stretched the hall to twice its height. */
+function boardFit(options){
+  const n = (options || []).reduce((m, o)=>Math.max(m, String(o == null ? '' : o).length), 0);
+  return n > 88 ? ' t-huge' : n > 52 ? ' t-xlong' : n > 26 ? ' t-long' : '';
+}
 function trialNextQuestion(){
   const t = App.trial;
   t.q = buildQuestion('trial', questionSources(), {noWritten:true});
@@ -18285,6 +18312,21 @@ async function trialAdvance(){
   }
   render();
 }
+/* Leaving is not pausing. The climb is a drill you either hold or lose, so
+   walking out drops you to floor 1 and clears the block you had banked - if
+   it kept your place, bailing out of a block you were about to fail would
+   cost nothing at all, which is the one thing the gate exists to prevent. */
+async function trialLeave(){
+  const ch = App.character;
+  const t = App.trial;
+  const stake = (ch.trialBest || 1) > 1 || (t && t.phase !== 'intro' && t.marks.length > 0);
+  if(stake && !confirm('Leave the climb? You drop to floor 1 and the blocks you have cleared are not kept. Gems you have already been paid stay yours.')) return;
+  ch.trialBest = 1;
+  await saveCharacter();
+  trialReset();
+  App.playMode = 'dungeon';
+  render();
+}
 /* Through the gate, or back down it. */
 function trialThrough(){
   const t = App.trial;
@@ -18310,6 +18352,8 @@ function renderTrial(){
       <p class="pvp-intro muted">Clearing a block pays <b>${TRIAL_GEMS_PER_BLOCK} \u{1F48E}</b>, up to <b>${TRIAL_GEM_CAP} a day</b>. You have <b>${trialGemsLeft()}</b> of today's left. Nothing here can hurt you and nothing is spent — it does not touch your run.</p>
       <div class="trial-start"></div></div>`));
     const sb = outer.querySelector('.trial-start');
+    const out = el(`<button class="px-btn red small trial-leave">Leave the climb</button>`);
+    out.addEventListener('click', trialLeave);
     const go = el(`<button class="px-btn gold">${(ch.trialBest||1) > 1 ? 'Resume at floor ' + (((ch.trialBest||1)-1)*TRIAL_BLOCK + 1) : 'Begin the climb'}</button>`);
     go.addEventListener('click', trialStart);
     sb.appendChild(go);
@@ -18318,6 +18362,7 @@ function renderTrial(){
       fresh.addEventListener('click', ()=>{ t.block = 1; trialStart(); });
       sb.appendChild(fresh);
     }
+    sb.appendChild(out);
     const o = el('<div></div>'); o.appendChild(outer); return o;
   }
 
@@ -18329,7 +18374,11 @@ function renderTrial(){
     <div class="th-pips"></div>
     <div class="th-note">${t.wrong ? '✘ ' + t.wrong + ' missed — the gate will send you back to floor ' + low
                                    : '✔ clean so far — ' + (TRIAL_BLOCK - t.marks.length) + ' to go'}</div>
+    <div class="th-leave"></div>
   </div>`);
+  const lv = el(`<button class="px-btn red small trial-leave">Leave the climb</button>`);
+  lv.addEventListener('click', trialLeave);
+  head.querySelector('.th-leave').appendChild(lv);
   const pips = head.querySelector('.th-pips');
   for(let i = 0; i < TRIAL_BLOCK; i++){
     const m = t.marks[i];
@@ -18363,12 +18412,13 @@ function renderTrial(){
 
   /* three doors, the answer nailed to each */
   const hall = el(`<div class="trial-hall"></div>`);
+  const fit = boardFit(q.options);
   (q.options||[]).forEach(opt=>{
     const chosen = t.picked === opt;
     const isRight = opt === q.correct;
     const state = t.phase !== 'reveal' ? 'idle' : (isRight ? 'open' : (chosen ? 'shut' : 'idle'));
     const cls = t.phase !== 'reveal' ? '' : (isRight ? ' open' : (chosen ? ' shut' : ' dim'));
-    const d = el(`<button class="trial-door${cls}"${t.phase === 'reveal' ? ' disabled' : ''}>
+    const d = el(`<button class="trial-door${fit}${cls}"${t.phase === 'reveal' ? ' disabled' : ''}>
       ${doorSvg(state)}
       <span class="td-board">${escapeHtml(String(opt))}</span>
       ${state === 'open' ? '<span class="td-mark">\u2714</span>' : ''}
